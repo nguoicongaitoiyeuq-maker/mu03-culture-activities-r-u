@@ -370,7 +370,8 @@ def session(request: Request):
     role = highest_role(conn, user)
     conn.close()
     profile = directory_lookup(request, user)
-    return {"user": user, "display_name": profile["display_name"], "today": datetime.now().date().isoformat(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
+    can_view_cfm = role == "SHIFT_LEADER" or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name='Ban Văn Hóa' AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, user)).fetchone() is not None
+    return {"user": user, "display_name": profile["display_name"], "today": datetime.now().date().isoformat(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
 
 
 @app.get("/api/directory/lookup")
