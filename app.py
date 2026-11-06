@@ -363,7 +363,15 @@ def list_members(name: str, request: Request):
     if not access:
         conn.close()
         raise HTTPException(403, "Family not found")
-    result = [dict(row) for row in member_rows(conn, access["owner"], name)]
+    result = []
+    for row in member_rows(conn, access["owner"], name):
+        item = dict(row)
+        profile = directory_lookup(request, item["email"])
+        if not item.get("display_name") or item["display_name"].lower() == item["email"].lower():
+            item["display_name"] = profile["display_name"]
+        if not item.get("title"):
+            item["title"] = profile.get("title", "")
+        result.append(item)
     conn.close()
     return result
 
