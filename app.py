@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import json
 import os
+import csv
 import sqlite3
 import threading
 from pathlib import Path
@@ -18,6 +19,18 @@ ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", 
 app = FastAPI(title="MU03 Production Communication")
 SCHEMA_LOCK = threading.Lock()
 SCHEMA_READY = False
+DIRECTORY = {}
+
+
+def load_directory():
+    global DIRECTORY
+    if DIRECTORY:
+        return DIRECTORY
+    path = ROOT / "company_directory.csv"
+    if path.exists():
+        with path.open(encoding="utf-8-sig", newline="") as source:
+            DIRECTORY = {row["email"].strip().lower(): row for row in csv.DictReader(source) if row.get("email")}
+    return DIRECTORY
 
 
 def add_column(conn, table, column, definition):
@@ -57,10 +70,11 @@ def db():
                 add_column(conn, "families", "teams_webhook_url", "TEXT NOT NULL DEFAULT ''")
                 conn.execute("""CREATE TABLE IF NOT EXISTS family_members (
                     family_owner TEXT NOT NULL, family_name TEXT NOT NULL, email TEXT NOT NULL,
-        display_name TEXT NOT NULL DEFAULT '', role TEXT NOT NULL DEFAULT 'MEMBER', managed_by TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL,
+                    display_name TEXT NOT NULL DEFAULT '', title TEXT NOT NULL DEFAULT '', role TEXT NOT NULL DEFAULT 'MEMBER', managed_by TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL,
                     PRIMARY KEY(family_owner, family_name, email)
                 )""")
                 add_column(conn, "family_members", "display_name", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "family_members", "title", "TEXT NOT NULL DEFAULT ''")
                 add_column(conn, "family_members", "managed_by", "TEXT NOT NULL DEFAULT ''")
                 conn.execute("UPDATE family_members SET role='AREA_LEADER' WHERE role='MEMBER'")
                 conn.commit()
@@ -86,6 +100,9 @@ def now_iso():
 
 def directory_lookup(request, email):
     email = email.strip().lower()
+    record = load_directory().get(email)
+    if record:
+        return {"email": email, "display_name": record["display_name"], "teams_name": record["display_name"], "title": record["title"], "employee_code": record["employee_code"], "source": "company-directory"}
     token = os.getenv("MS_GRAPH_ACCESS_TOKEN", "").strip()
     if token:
         try:
@@ -118,7 +135,7 @@ def family_row(conn, owner, name):
 
 
 def member_rows(conn, owner, name):
-    return conn.execute("SELECT email, display_name, role, managed_by FROM family_members WHERE family_owner=? AND family_name=? ORDER BY role DESC, email", (owner, name)).fetchall()
+    return conn.execute("SELECT email, display_name, title, role, managed_by FROM family_members WHERE family_owner=? AND family_name=? ORDER BY role DESC, email", (owner, name)).fetchall()
 
 
 def family_access(conn, user, name):
@@ -358,6 +375,7 @@ async def add_member(name: str, request: Request):
     email = str(payload.get("email", "")).strip().lower()
     profile = directory_lookup(request, email)
     display_name = str(payload.get("display_name") or profile["display_name"]).strip()
+    title = str(payload.get("title") or profile.get("title") or "").strip()
     role = str(payload.get("role", "MEMBER")).strip().upper()
     managed_by = str(payload.get("managed_by", "")).strip().lower()
     if "@" not in email or role not in ("AREA_LEADER", "SHIFT_LEADER"):
@@ -372,10 +390,10 @@ async def add_member(name: str, request: Request):
             raise HTTPException(400, "Select a shift leader for this area leader")
     else:
         managed_by = ""
-    conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?)", (user, name, email, display_name, role, managed_by, now_iso()))
+    conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)", (user, name, email, display_name, title, role, managed_by, now_iso()))
     conn.commit()
     conn.close()
-    return {"email": email, "display_name": display_name, "teams_name": profile["teams_name"], "role": role, "managed_by": managed_by}
+    return {"email": email, "display_name": display_name, "title": title, "teams_name": profile["teams_name"], "role": role, "managed_by": managed_by}
 
 
 @app.delete("/api/families/{name}/members/{email}")
