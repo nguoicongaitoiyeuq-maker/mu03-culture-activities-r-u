@@ -14,6 +14,9 @@
 .group-members{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .group-member{border:1px solid #edc9ce;border-radius:8px;padding:7px 9px;background:#fff;color:#4b5563;font-size:12px}
 .group-member b{display:block;color:#17191d}
+.group-member small{display:block;color:#667085;margin-top:3px}
+.group-member em{display:block;color:#a30e1b;font-style:normal;font-size:11px;font-weight:800;margin-top:5px}
+.reports{border-left:2px solid #efc7cb;margin-top:9px;padding-left:8px;display:grid;gap:4px;color:#7a1e29;font-size:11px}
 </style>
 </head>
 <body>
@@ -220,6 +223,10 @@
 <option value="AREA_LEADER">Leader khu vực</option>
 <option value="SHIFT_LEADER">Shift leader</option>
 </select>
+</div>
+<div class="field" id="managedByField">
+<label>Shift leader quản lý</label>
+<select id="managedBy"></select>
 </div>
 </div>
 <div id="familyMembers" class="family-list section-space"></div>

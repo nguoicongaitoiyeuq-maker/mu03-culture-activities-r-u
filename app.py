@@ -57,10 +57,11 @@ def db():
                 add_column(conn, "families", "teams_webhook_url", "TEXT NOT NULL DEFAULT ''")
                 conn.execute("""CREATE TABLE IF NOT EXISTS family_members (
                     family_owner TEXT NOT NULL, family_name TEXT NOT NULL, email TEXT NOT NULL,
-                    display_name TEXT NOT NULL DEFAULT '', role TEXT NOT NULL DEFAULT 'MEMBER', created_at TEXT NOT NULL,
+        display_name TEXT NOT NULL DEFAULT '', role TEXT NOT NULL DEFAULT 'MEMBER', managed_by TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL,
                     PRIMARY KEY(family_owner, family_name, email)
                 )""")
                 add_column(conn, "family_members", "display_name", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "family_members", "managed_by", "TEXT NOT NULL DEFAULT ''")
                 conn.execute("UPDATE family_members SET role='AREA_LEADER' WHERE role='MEMBER'")
                 conn.commit()
                 SCHEMA_READY = True
@@ -117,7 +118,7 @@ def family_row(conn, owner, name):
 
 
 def member_rows(conn, owner, name):
-    return conn.execute("SELECT email, display_name, role FROM family_members WHERE family_owner=? AND family_name=? ORDER BY role DESC, email", (owner, name)).fetchall()
+    return conn.execute("SELECT email, display_name, role, managed_by FROM family_members WHERE family_owner=? AND family_name=? ORDER BY role DESC, email", (owner, name)).fetchall()
 
 
 def family_access(conn, user, name):
@@ -358,16 +359,23 @@ async def add_member(name: str, request: Request):
     profile = directory_lookup(request, email)
     display_name = str(payload.get("display_name") or profile["display_name"]).strip()
     role = str(payload.get("role", "MEMBER")).strip().upper()
+    managed_by = str(payload.get("managed_by", "")).strip().lower()
     if "@" not in email or role not in ("AREA_LEADER", "SHIFT_LEADER"):
         raise HTTPException(400, "A company email and valid role are required")
     conn = db()
     if not family_row(conn, user, name):
         conn.close()
         raise HTTPException(403, "Only the family owner can manage members")
-    conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,role,created_at) VALUES(?,?,?,?,?,?)", (user, name, email, display_name, role, now_iso()))
+    if role == "AREA_LEADER":
+        if not managed_by or not conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) AND role='SHIFT_LEADER'", (user, name, managed_by)).fetchone():
+            conn.close()
+            raise HTTPException(400, "Select a shift leader for this area leader")
+    else:
+        managed_by = ""
+    conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?)", (user, name, email, display_name, role, managed_by, now_iso()))
     conn.commit()
     conn.close()
-    return {"email": email, "display_name": display_name, "teams_name": profile["teams_name"], "role": role}
+    return {"email": email, "display_name": display_name, "teams_name": profile["teams_name"], "role": role, "managed_by": managed_by}
 
 
 @app.delete("/api/families/{name}/members/{email}")
