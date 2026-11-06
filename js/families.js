@@ -9,19 +9,20 @@ function roleLabel(role) {
 }
 
 function renderFamilies() {
-  family.innerHTML = state.families.map((item) => `<option>${esc(item)}</option>`).join('');
-  families.innerHTML = state.families.map((item) => `<span class="family">${esc(item)} <button onclick="removeFamily('${esc(item)}')">×</button></span>`).join('');
+  const visibleFamilies = state.families.filter((item) => item !== 'ALL MU03');
+  family.innerHTML = visibleFamilies.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join('') + '<option value="ALL MU03">All groups (MU03)</option>';
+  families.innerHTML = visibleFamilies.map((item) => `<span class="family">${esc(item)} <button onclick="removeFamily('${esc(item)}')">×</button></span>`).join('');
   if (typeof familyManage === 'undefined') return;
   const previous = familyManage.value;
-  familyManage.innerHTML = state.families.map((item) => `<option>${esc(item)}</option>`).join('');
-  familyManage.value = state.families.includes(previous) ? previous : (state.families[0] || '');
+  familyManage.innerHTML = visibleFamilies.map((item) => `<option>${esc(item)}</option>`).join('');
+  familyManage.value = visibleFamilies.includes(previous) ? previous : (visibleFamilies[0] || '');
   loadMembers();
   loadFamilyOverview();
 }
 
 async function loadFamilyOverview() {
   if (typeof familyOverview === 'undefined') return;
-  const groups = await Promise.all(state.families.map(async (name) => ({ name, members: await api(`/api/families/${encodeURIComponent(name)}/members`).catch(() => []) })));
+  const groups = await Promise.all(state.families.filter((name) => name !== 'ALL MU03').map(async (name) => ({ name, members: await api(`/api/families/${encodeURIComponent(name)}/members`).catch(() => []) })));
   familyOverview.innerHTML = groups.map((group) => {
     const shifts = group.members.filter((member) => member.role === 'SHIFT_LEADER');
     const leaders = group.members.filter((member) => member.role === 'AREA_LEADER');
@@ -64,7 +65,7 @@ function addMember() {
   const email = memberEmail.value.trim().toLowerCase();
   if (!familyManage.value || !email) return;
   api(`/api/families/${encodeURIComponent(familyManage.value)}/members`, { method: 'POST', body: JSON.stringify({ email, display_name: memberProfile.dataset.displayName || '', role: memberRole.value, managed_by: managedBy.value }) })
-    .then(() => { memberEmail.value = ''; memberProfile.textContent = 'Enter a company email to look up the Teams profile.'; loadMembers(); })
+    .then(() => { memberEmail.value = ''; memberProfile.textContent = ''; loadMembers(); })
     .catch((error) => showToast(error.message || 'Cannot add leader', 'error'));
 }
 
