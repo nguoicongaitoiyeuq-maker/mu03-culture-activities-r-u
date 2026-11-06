@@ -187,7 +187,9 @@ def notify_teams(ticket, event):
     webhook = os.getenv("MU03_TEAMS_WEBHOOK_URL", "").strip()
     if not webhook:
         return
-    message = {"@type": "MessageCard", "@context": "http://schema.org/extensions", "summary": f"MU03 R&U: {event}", "themeColor": "C1121F", "sections": [{"activityTitle": f"MU03 R&U: {event}", "facts": [{"name": "Ticket", "value": ticket["id"]}, {"name": "Family", "value": ticket["family"]}, {"name": "Sender", "value": ticket["owner"]}, {"name": "Shift leader", "value": ticket.get("shift_leader") or "Not configured"}, {"name": "Area leader", "value": ticket.get("area_leader") or "Not configured"}], "text": f"{ticket['title']}\nStatus: {ticket['status']}"}]}
+    app_url = os.getenv("MU03_APP_URL", "https://r-u-4482605715640778.18.azure.databricksapps.com")
+    ticket_url = f"{app_url}/?ticket={ticket['id']}"
+    message = {"@type": "MessageCard", "@context": "http://schema.org/extensions", "summary": f"MU03 R&U: {event}", "themeColor": "C1121F", "sections": [{"activityTitle": f"MU03 R&U: {event}", "facts": [{"name": "Ticket", "value": ticket["id"]}, {"name": "Family", "value": ticket["family"]}, {"name": "Sender", "value": ticket["owner"]}, {"name": "Shift leader", "value": ticket.get("shift_leader") or "Not configured"}, {"name": "Area leader", "value": ticket.get("area_leader") or "Not configured"}], "text": f"{ticket['title']}\nStatus: {ticket['status']}\nOpen: {ticket_url}"}], "potentialAction": [{"@type": "OpenUri", "name": "Open ticket", "targets": [{"os": "default", "uri": ticket_url}]}]}
     try:
         request = UrlRequest(webhook, data=json.dumps(message).encode(), headers={"Content-Type": "application/json"}, method="POST")
         with urlopen(request, timeout=4):
@@ -270,7 +272,7 @@ async def create_ticket(request: Request):
     shifts = [row["email"] for row in members if row["role"] == "SHIFT_LEADER"]
     areas = [row["email"] for row in members if row["role"] == "AREA_LEADER"]
     recipients = [row["email"] for row in members]
-    item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": datetime.now().date().isoformat(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": areas[0] if areas else DEFAULT_LEADER, "status": "WAITING FOR SHIFT LEADER CONFIRMATION", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": shifts[0] if shifts else "", "area_leader": areas[0] if areas else "", "recipient_emails": json.dumps(recipients)}
+    item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": datetime.now().date().isoformat(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": areas[0] if areas else DEFAULT_LEADER, "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": shifts[0] if shifts else "", "area_leader": areas[0] if areas else "", "recipient_emails": json.dumps(recipients)}
     conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails)""", item)
     conn.commit()
     row = conn.execute("SELECT * FROM tickets WHERE id=?", (item["id"],)).fetchone()
@@ -291,6 +293,9 @@ async def update_ticket(ticket_id: str, request: Request):
         raise HTTPException(404, "Ticket not found")
     current = ticket_json(row, conn, user)
     status = payload.get("status")
+    if status == "READ" and not current.get("can_manage"):
+        conn.close()
+        raise HTTPException(403, "Only the assigned area leader can mark this ticket READ")
     if status in ("SHIFT LEADER CONFIRMED", "SHIFT LEADER REJECTED") and not current.get("can_confirm"):
         conn.close()
         raise HTTPException(403, "Only the assigned shift leader can confirm this ticket")
