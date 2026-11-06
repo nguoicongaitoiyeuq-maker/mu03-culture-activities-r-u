@@ -14,10 +14,12 @@ function applyState(session, tickets, familiesList) {
   state.displayName = session.display_name || session.user;
   state.today = session.today;
   state.role = session.role || 'MEMBER';
+  state.canCreateTicket = session.can_create_ticket === true;
   state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
   state.families = familiesList;
   userPill.textContent = state.displayName;
+  document.querySelectorAll('[data-page="create"], [data-new-ticket]').forEach((element) => element.classList.toggle('hidden', !state.canCreateTicket));
   if (typeof ownerEmail !== 'undefined') ownerEmail.value = session.user;
   daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
   daySelect.value = state.day;
@@ -33,7 +35,11 @@ function load() {
     applyState(boot, boot.tickets || [], boot.families || []);
     return Promise.resolve();
   }
-  return Promise.all([api('/api/session'), api('/api/tickets'), api('/api/families')]).then(([session, tickets, familiesList]) => applyState(session, tickets, familiesList));
+  return Promise.allSettled([api('/api/session'), api('/api/tickets'), api('/api/families')]).then((results) => {
+    const sessionResult = results[0];
+    if (sessionResult.status !== 'fulfilled') throw sessionResult.reason;
+    applyState(sessionResult.value, results[1].status === 'fulfilled' ? results[1].value : [], results[2].status === 'fulfilled' ? results[2].value : []);
+  });
 }
 
 function showToast(message, kind) {
@@ -54,6 +60,10 @@ function showToast(message, kind) {
 let ticketSubmitting = false;
 
 async function createTicket() {
+  if (!state.canCreateTicket) {
+    showToast('Your account is not allowed to create tickets.', 'error');
+    return;
+  }
   if (ticketSubmitting) return;
   const button = document.querySelector('#create .leader-actions .btn.primary');
   ticketSubmitting = true;

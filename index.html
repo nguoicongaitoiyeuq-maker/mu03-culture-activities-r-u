@@ -54,9 +54,10 @@
 .report-row b{display:block;font-size:12px;color:#252a31}
 .report-row small{display:block;margin-top:2px;color:#667085;overflow-wrap:anywhere}
 .report-row em{display:block;margin-top:3px;color:#7a1e29;font-size:10px;font-style:normal;font-weight:800}
+.member-roster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:22px}
 .unassigned-note{padding:18px 22px;color:#667085;font-size:12px}
-@media(max-width:1000px){.group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.group-tree{grid-template-columns:1fr}}
-@media(max-width:700px){.groups-toolbar,.group-detail-head{display:block}.groups-status{margin-top:12px}.group-grid{grid-template-columns:1fr}.group-detail-badge{display:inline-block;margin-top:14px}.group-tree{padding:14px}}
+@media(max-width:1000px){.group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.group-tree{grid-template-columns:1fr}.member-roster{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.groups-toolbar,.group-detail-head{display:block}.groups-status{margin-top:12px}.group-grid{grid-template-columns:1fr}.group-detail-badge{display:inline-block;margin-top:14px}.group-tree{padding:14px}.member-roster{grid-template-columns:1fr;padding:14px}}
 </style>
 </head>
 <body>
@@ -95,7 +96,7 @@
 <div>
 <h2>MU03 Culture Activities R&U</h2>
 </div>
-<button class="btn primary" onclick="showPage('create')">+ New Ticket</button>
+<button class="btn primary" data-new-ticket onclick="showPage('create')">+ New Ticket</button>
 </div>
 <div id="summaryStrip" class="summary-chart">
 <div class="summary-chart-title">Ticket Flow &amp; READ</div>

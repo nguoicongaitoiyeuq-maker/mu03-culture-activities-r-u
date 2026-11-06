@@ -15,6 +15,18 @@ DB_PATH = Path(os.getenv("MU03_DATA_PATH", str(ROOT / "mu03_ru.sqlite3")))
 DEFAULT_FAMILIES = ["Gen 4", "Gen 5", "HTIW", "Grinder", "D&F", "Nailer", "Sub Line", "ALL MU03"]
 DEFAULT_LEADER = "Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)"
 ROLE_RANK = {"MEMBER": 1, "AREA_LEADER": 2, "SHIFT_LEADER": 3, "ADMIN": 4}
+CULTURE_GROUP_OWNER = "thanhdat.le2@ttigroup.com.vn"
+CULTURE_GROUP_MEMBERS = [
+    ("thanhphat.duong@ttigroup.com.vn", "Dương Thành Phát", "Assistant Production Manager", "MEMBER", ""),
+    ("trunghieu.ho@ttigroup.com.vn", "Hồ Trung Hiếu", "Production Supervisor", "MEMBER", ""),
+    ("thebao.vo@ttigroup.com.vn", "Võ Thế Bảo", "Production Supervisor", "MEMBER", ""),
+    ("son.le@ttigroup.com.vn", "Lê Trần Thái Linh Sơn", "Production Supervisor", "MEMBER", ""),
+    ("catnhan.le@ttigroup.com.vn", "Lê Cát Nhàn", "Production Supervisor", "MEMBER", ""),
+    ("tuannhu.le01@ttigroup.com.vn", "Lê Tuấn Nhu", "Senior Production Supervisor", "MEMBER", ""),
+    ("minhquan.pham1@ttigroup.com.vn", "Phạm Minh Quân", "Senior Production Supervisor", "MEMBER", ""),
+    ("hailam.hoang@ttigroup.com.vn", "Hoàng Hải Lâm", "Production Supervisor", "MEMBER", ""),
+    ("thanhdat.le2@ttigroup.com.vn", "Lê Thành Đạt", "Acting Line Leader", "AREA_LEADER", ""),
+]
 ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", "snaptik.vn_7616226358024310033.mp4": "video/mp4"}
 HTIW_LEADERS = [
     ("vandai.dang@ttigroup.com.vn", "Đặng Văn Đại", "Production Shift Leader", "SHIFT_LEADER", ""),
@@ -218,6 +230,13 @@ def directory_lookup(request, email):
 
 
 def ensure_families(conn, user):
+    conn.execute("INSERT OR IGNORE INTO families(owner,name,created_at) VALUES(?,?,?)", (CULTURE_GROUP_OWNER, "Ban Văn Hóa", now_iso()))
+    for email, display_name, title, role, managed_by in CULTURE_GROUP_MEMBERS:
+        conn.execute(
+            "INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)",
+            (CULTURE_GROUP_OWNER, "Ban Văn Hóa", email, display_name, title, role, managed_by, now_iso()),
+        )
+    conn.commit()
     has_own = conn.execute("SELECT 1 FROM families WHERE owner=? LIMIT 1", (user,)).fetchone()
     is_member = conn.execute("SELECT 1 FROM family_members WHERE email=? LIMIT 1", (user,)).fetchone()
     if not has_own and not is_member:
@@ -344,7 +363,7 @@ def session(request: Request):
     role = highest_role(conn, user)
     conn.close()
     profile = directory_lookup(request, user)
-    return {"user": user, "display_name": profile["display_name"], "today": datetime.now().date().isoformat(), "role": role, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
+    return {"user": user, "display_name": profile["display_name"], "today": datetime.now().date().isoformat(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
 
 
 @app.get("/api/directory/lookup")
@@ -373,6 +392,8 @@ def list_tickets(request: Request, day: str = "all"):
 async def create_ticket(request: Request):
     payload = await request.json()
     user = user_email(request)
+    if user not in {member[0] for member in CULTURE_GROUP_MEMBERS}:
+        raise HTTPException(403, "Only the Ban Văn Hóa members can create tickets")
     if any(not str(payload.get(key, "")).strip() for key in ("title", "family", "content")):
         raise HTTPException(400, "Title, family and content are required")
     conn = db()
