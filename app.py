@@ -28,6 +28,17 @@ HTIW_LEADERS = [
     ("minhduong.hua@ttigroup.com.vn", "Hứa Minh Đương", "Production Line Leader", "AREA_LEADER", "quochai.pham@ttigroup.com.vn"),
     ("ngocthi.nguyen@ttigroup.com.vn", "Nguyễn Ngọc Thi", "Acting Line Leader", "AREA_LEADER", "quochai.pham@ttigroup.com.vn"),
 ]
+GEN4_LEADERS = [
+    ("huuthiep.nguyen@ttigroup.com.vn", "Nguyễn Hữu Thiệp", "Senior Production Shift Leader", "SHIFT_LEADER", ""),
+    ("phuongthao.le@ttigroup.com.vn", "Lê Phương Thảo", "Production Line Leader", "AREA_LEADER", "huuthiep.nguyen@ttigroup.com.vn"),
+    ("huutai.truong@ttigroup.com.vn", "Trương Hữu Tài", "Production Line Leader", "AREA_LEADER", "huuthiep.nguyen@ttigroup.com.vn"),
+    ("vanluong.tran@ttigroup.com.vn", "Trần Văn Lương", "Acting Line Leader", "AREA_LEADER", "huuthiep.nguyen@ttigroup.com.vn"),
+    ("kimchung.truong@ttigroup.com.vn", "Trương Kim Chung", "Senior Production Shift Leader", "SHIFT_LEADER", ""),
+    ("quocdat.nguyen@ttigroup.com.vn", "Nguyễn Quốc Đạt", "Production Line Leader", "AREA_LEADER", "kimchung.truong@ttigroup.com.vn"),
+    ("khanhhoa.vo@ttigroup.com.vn", "Võ Khánh Hòa", "Production Line Leader", "AREA_LEADER", "kimchung.truong@ttigroup.com.vn"),
+    ("minhtam.nguyen@ttigroup.com.vn", "Nguyễn Minh Tâm", "Production Line Leader", "AREA_LEADER", "kimchung.truong@ttigroup.com.vn"),
+    ("anh.nguyen1@ttigroup.com.vn", "Nguyễn Hoàng Anh", "Production Line Leader", "AREA_LEADER", "kimchung.truong@ttigroup.com.vn"),
+]
 app = FastAPI(title="MU03 Production Communication")
 SCHEMA_LOCK = threading.Lock()
 SCHEMA_READY = False
@@ -144,6 +155,11 @@ def ensure_families(conn, user):
     if htiw:
         for email, display_name, title, role, managed_by in HTIW_LEADERS:
             conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)", (user, "HTIW", email, display_name, title, role, managed_by, now_iso()))
+        conn.commit()
+    gen4 = family_row(conn, user, "Gen 4")
+    if gen4:
+        for email, display_name, title, role, managed_by in GEN4_LEADERS:
+            conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)", (user, "Gen 4", email, display_name, title, role, managed_by, now_iso()))
         conn.commit()
 
 
