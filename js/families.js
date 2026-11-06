@@ -5,7 +5,7 @@ function memberName(member) {
 }
 
 function roleLabel(role) {
-  return role === 'SHIFT_LEADER' ? 'Shift leader' : 'Leader khu vực';
+  return role === 'SHIFT_LEADER' ? 'Shift leader' : 'Leader';
 }
 
 function renderFamilies() {
@@ -27,7 +27,7 @@ async function loadFamilyOverview() {
     const shifts = group.members.filter((member) => member.role === 'SHIFT_LEADER');
     const leaders = group.members.filter((member) => member.role === 'AREA_LEADER');
     const shiftCards = shifts.map((shift) => `<div class="group-member"><b>${esc(memberName(shift))}</b><small>${esc(shift.email)}</small><em>Shift leader</em><div class="reports">${leaders.filter((leader) => (leader.managed_by || '').toLowerCase() === shift.email.toLowerCase()).map((leader) => `<span>${esc(memberName(leader))}</span>`).join('') || '<span>No area leaders assigned</span>'}</div></div>`).join('');
-    const unassigned = leaders.filter((leader) => !(leader.managed_by || '').trim()).map((leader) => `<div class="group-member"><b>${esc(memberName(leader))}</b><small>${esc(leader.email)}</small><em>Unassigned area leader</em></div>`).join('');
+    const unassigned = leaders.filter((leader) => !(leader.managed_by || '').trim()).map((leader) => `<div class="group-member"><b>${esc(memberName(leader))}</b><small>${esc(leader.email)}</small><em>Unassigned leader</em></div>`).join('');
     return `<article class="group-card"><h4>${esc(group.name)}</h4><div class="group-count">${group.members.length} configured leader${group.members.length === 1 ? '' : 's'}</div><div class="group-members">${shiftCards}${unassigned || (!shiftCards ? '<span class="meta">No leaders configured</span>' : '')}</div></article>`;
   }).join('');
 }
