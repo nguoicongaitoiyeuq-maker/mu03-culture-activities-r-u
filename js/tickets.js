@@ -15,11 +15,13 @@ function applyState(session, tickets, familiesList) {
   state.today = session.today;
   state.role = session.role || 'MEMBER';
   state.canCreateTicket = session.can_create_ticket === true;
+  state.canViewCfm = session.can_view_cfm === true;
   state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
   state.families = familiesList;
   userPill.textContent = state.displayName;
   document.querySelectorAll('[data-page="create"], [data-new-ticket]').forEach((element) => element.classList.toggle('hidden', !state.canCreateTicket));
+  document.querySelectorAll('[data-cfm-menu]').forEach((element) => element.classList.toggle('hidden', !state.canViewCfm));
   if (typeof ownerEmail !== 'undefined') ownerEmail.value = session.user;
   daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
   daySelect.value = state.day;
