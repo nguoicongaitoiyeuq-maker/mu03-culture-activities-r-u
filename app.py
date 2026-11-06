@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import json
 import os
 import sqlite3
+import threading
 from pathlib import Path
 from urllib.request import Request as UrlRequest, urlopen
 
@@ -15,6 +16,8 @@ DEFAULT_LEADER = "Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)"
 ROLE_RANK = {"MEMBER": 1, "AREA_LEADER": 2, "SHIFT_LEADER": 3, "ADMIN": 4}
 ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", "snaptik.vn_7616226358024310033.mp4": "video/mp4"}
 app = FastAPI(title="MU03 Production Communication")
+SCHEMA_LOCK = threading.Lock()
+SCHEMA_READY = False
 
 
 def add_column(conn, table, column, definition):
@@ -24,32 +27,42 @@ def add_column(conn, table, column, definition):
 
 
 def db():
-    conn = sqlite3.connect(DB_PATH)
+    global SCHEMA_READY
+    conn = sqlite3.connect(DB_PATH, timeout=20)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("""CREATE TABLE IF NOT EXISTS tickets (
-        id TEXT PRIMARY KEY, owner TEXT NOT NULL, day TEXT NOT NULL, title TEXT NOT NULL,
-        family TEXT NOT NULL, content TEXT NOT NULL, cause TEXT, department TEXT,
-        leader TEXT NOT NULL DEFAULT 'Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)', status TEXT NOT NULL,
-        line_id TEXT, note TEXT, media_json TEXT NOT NULL, sent_at TEXT NOT NULL,
-        read_at TEXT, closed_at TEXT
-    )""")
-    add_column(conn, "tickets", "family_owner", "TEXT NOT NULL DEFAULT ''")
-    add_column(conn, "tickets", "shift_leader", "TEXT NOT NULL DEFAULT ''")
-    add_column(conn, "tickets", "area_leader", "TEXT NOT NULL DEFAULT ''")
-    add_column(conn, "tickets", "recipient_emails", "TEXT NOT NULL DEFAULT '[]'")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_owner_day ON tickets(owner, day)")
-    conn.execute("""CREATE TABLE IF NOT EXISTS families (
-        owner TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
-        teams_webhook_url TEXT NOT NULL DEFAULT '', PRIMARY KEY(owner, name)
-    )""")
-    add_column(conn, "families", "teams_webhook_url", "TEXT NOT NULL DEFAULT ''")
-    conn.execute("""CREATE TABLE IF NOT EXISTS family_members (
-        family_owner TEXT NOT NULL, family_name TEXT NOT NULL, email TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'MEMBER', created_at TEXT NOT NULL,
-        PRIMARY KEY(family_owner, family_name, email)
-    )""")
-    conn.commit()
+    conn.execute("PRAGMA busy_timeout=20000")
+    if not SCHEMA_READY:
+        with SCHEMA_LOCK:
+            if not SCHEMA_READY:
+                try:
+                    conn.execute("PRAGMA journal_mode=WAL")
+                except sqlite3.OperationalError:
+                    pass
+                conn.execute("""CREATE TABLE IF NOT EXISTS tickets (
+                    id TEXT PRIMARY KEY, owner TEXT NOT NULL, day TEXT NOT NULL, title TEXT NOT NULL,
+                    family TEXT NOT NULL, content TEXT NOT NULL, cause TEXT, department TEXT,
+                    leader TEXT NOT NULL DEFAULT 'Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)', status TEXT NOT NULL,
+                    line_id TEXT, note TEXT, media_json TEXT NOT NULL, sent_at TEXT NOT NULL,
+                    read_at TEXT, closed_at TEXT
+                )""")
+                add_column(conn, "tickets", "family_owner", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "tickets", "shift_leader", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "tickets", "area_leader", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "tickets", "recipient_emails", "TEXT NOT NULL DEFAULT '[]'")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_owner_day ON tickets(owner, day)")
+                conn.execute("""CREATE TABLE IF NOT EXISTS families (
+                    owner TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
+                    teams_webhook_url TEXT NOT NULL DEFAULT '', PRIMARY KEY(owner, name)
+                )""")
+                add_column(conn, "families", "teams_webhook_url", "TEXT NOT NULL DEFAULT ''")
+                conn.execute("""CREATE TABLE IF NOT EXISTS family_members (
+                    family_owner TEXT NOT NULL, family_name TEXT NOT NULL, email TEXT NOT NULL,
+                    display_name TEXT NOT NULL DEFAULT '', role TEXT NOT NULL DEFAULT 'MEMBER', created_at TEXT NOT NULL,
+                    PRIMARY KEY(family_owner, family_name, email)
+                )""")
+                add_column(conn, "family_members", "display_name", "TEXT NOT NULL DEFAULT ''")
+                conn.commit()
+                SCHEMA_READY = True
     return conn
 
 
@@ -69,6 +82,26 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 
+def directory_lookup(request, email):
+    email = email.strip().lower()
+    token = os.getenv("MS_GRAPH_ACCESS_TOKEN", "").strip()
+    if token:
+        try:
+            url = "https://graph.microsoft.com/v1.0/users/" + email + "?$select=displayName,mail,userPrincipalName"
+            graph_request = UrlRequest(url, headers={"Authorization": f"Bearer {token}"})
+            with urlopen(graph_request, timeout=5) as response:
+                data = json.loads(response.read().decode("utf-8"))
+            name = data.get("displayName") or email
+            return {"email": data.get("mail") or data.get("userPrincipalName") or email, "display_name": name, "teams_name": name, "source": "microsoft-graph"}
+        except Exception:
+            pass
+    for key in ("x-forwarded-user-name", "x-user-name", "x-databricks-display-name"):
+        value = request.headers.get(key)
+        if value and "@" not in value and email == user_email(request):
+            return {"email": email, "display_name": value.strip(), "teams_name": value.strip(), "source": "login-header"}
+    return {"email": email, "display_name": email, "teams_name": email, "source": "email-fallback"}
+
+
 def ensure_families(conn, user):
     has_own = conn.execute("SELECT 1 FROM families WHERE owner=? LIMIT 1", (user,)).fetchone()
     is_member = conn.execute("SELECT 1 FROM family_members WHERE email=? LIMIT 1", (user,)).fetchone()
@@ -83,7 +116,7 @@ def family_row(conn, owner, name):
 
 
 def member_rows(conn, owner, name):
-    return conn.execute("SELECT email, role FROM family_members WHERE family_owner=? AND family_name=? ORDER BY role DESC, email", (owner, name)).fetchall()
+    return conn.execute("SELECT email, display_name, role FROM family_members WHERE family_owner=? AND family_name=? ORDER BY role DESC, email", (owner, name)).fetchall()
 
 
 def family_access(conn, user, name):
@@ -169,7 +202,15 @@ def session(request: Request):
     ensure_families(conn, user)
     role = highest_role(conn, user)
     conn.close()
-    return {"user": user, "today": datetime.now().date().isoformat(), "role": role, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL"))}
+    profile = directory_lookup(request, user)
+    return {"user": user, "display_name": profile["display_name"], "today": datetime.now().date().isoformat(), "role": role, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
+
+
+@app.get("/api/directory/lookup")
+def lookup_directory(email: str, request: Request):
+    if "@" not in email:
+        raise HTTPException(400, "A company email is required")
+    return directory_lookup(request, email)
 
 
 @app.get("/api/tickets")
@@ -297,6 +338,8 @@ async def add_member(name: str, request: Request):
     user = user_email(request)
     payload = await request.json()
     email = str(payload.get("email", "")).strip().lower()
+    profile = directory_lookup(request, email)
+    display_name = str(payload.get("display_name") or profile["display_name"]).strip()
     role = str(payload.get("role", "MEMBER")).strip().upper()
     if "@" not in email or role not in ("MEMBER", "AREA_LEADER", "SHIFT_LEADER"):
         raise HTTPException(400, "A company email and valid role are required")
@@ -304,10 +347,10 @@ async def add_member(name: str, request: Request):
     if not family_row(conn, user, name):
         conn.close()
         raise HTTPException(403, "Only the family owner can manage members")
-    conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,role,created_at) VALUES(?,?,?,?,?)", (user, name, email, role, now_iso()))
+    conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,role,created_at) VALUES(?,?,?,?,?,?)", (user, name, email, display_name, role, now_iso()))
     conn.commit()
     conn.close()
-    return {"email": email, "role": role}
+    return {"email": email, "display_name": display_name, "teams_name": profile["teams_name"], "role": role}
 
 
 @app.delete("/api/families/{name}/members/{email}")
