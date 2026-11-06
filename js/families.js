@@ -9,6 +9,8 @@ function roleLabel(role) {
 }
 
 function renderFamilies() {
+  if (typeof memberEmail !== 'undefined') memberEmail.value = '';
+  if (typeof memberProfile !== 'undefined') { memberProfile.textContent = ''; memberProfile.dataset.displayName = ''; }
   const visibleFamilies = state.families.filter((item) => item !== 'ALL MU03');
   family.innerHTML = visibleFamilies.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join('') + '<option value="ALL MU03">All groups (MU03)</option>';
   families.innerHTML = visibleFamilies.map((item) => `<span class="family">${esc(item)} <button onclick="removeFamily('${esc(item)}')">×</button></span>`).join('');
@@ -26,8 +28,8 @@ async function loadFamilyOverview() {
   familyOverview.innerHTML = groups.map((group) => {
     const shifts = group.members.filter((member) => member.role === 'SHIFT_LEADER');
     const leaders = group.members.filter((member) => member.role === 'AREA_LEADER');
-    const shiftCards = shifts.map((shift) => `<div class="group-member"><b>${esc(memberName(shift))}</b><small>${esc(shift.email)}</small><em>Shift leader</em><div class="reports">${leaders.filter((leader) => (leader.managed_by || '').toLowerCase() === shift.email.toLowerCase()).map((leader) => `<span>${esc(memberName(leader))}</span>`).join('') || '<span>No area leaders assigned</span>'}</div></div>`).join('');
-    const unassigned = leaders.filter((leader) => !(leader.managed_by || '').trim()).map((leader) => `<div class="group-member"><b>${esc(memberName(leader))}</b><small>${esc(leader.email)}</small><em>Unassigned leader</em></div>`).join('');
+    const shiftCards = shifts.map((shift) => `<div class="group-member"><b>${esc(memberName(shift))}</b><small>${esc(shift.email)}</small><em>${esc(shift.title || 'Shift leader')}</em><div class="reports">${leaders.filter((leader) => (leader.managed_by || '').toLowerCase() === shift.email.toLowerCase()).map((leader) => `<span>${esc(memberName(leader))} · ${esc(leader.title || 'Leader')}</span>`).join('') || '<span>No area leaders assigned</span>'}</div></div>`).join('');
+    const unassigned = leaders.filter((leader) => !(leader.managed_by || '').trim()).map((leader) => `<div class="group-member"><b>${esc(memberName(leader))}</b><small>${esc(leader.email)}</small><em>${esc(leader.title || 'Leader')}</em></div>`).join('');
     return `<article class="group-card"><h4>${esc(group.name)}</h4><div class="group-count">${group.members.length} configured leader${group.members.length === 1 ? '' : 's'}</div><div class="group-members">${shiftCards}${unassigned || (!shiftCards ? '<span class="meta">No leaders configured</span>' : '')}</div></article>`;
   }).join('');
 }
@@ -35,7 +37,7 @@ async function loadFamilyOverview() {
 function renderMembers() {
   if (typeof familyMembers === 'undefined') return;
   familyMembers.innerHTML = configuredMembers.length
-    ? configuredMembers.map((member) => `<span class="family"><b>${esc(memberName(member))}</b> · ${esc(member.email)} · ${roleLabel(member.role)}${member.role === 'AREA_LEADER' ? ` · managed by ${esc(member.managed_by || 'not assigned')}` : ''} <button onclick="removeMember('${esc(member.email)}')">×</button></span>`).join('')
+    ? configuredMembers.map((member) => `<span class="family"><b>${esc(memberName(member))}</b> · ${esc(member.email)} · ${esc(member.title || roleLabel(member.role))}${member.role === 'AREA_LEADER' ? ` · managed by ${esc(member.managed_by || 'not assigned')}` : ''} <button onclick="removeMember('${esc(member.email)}')">×</button></span>`).join('')
     : '<span class="meta">No leaders configured for this group.</span>';
   renderManagedByOptions();
 }
@@ -45,6 +47,11 @@ function renderManagedByOptions() {
   const shifts = configuredMembers.filter((member) => member.role === 'SHIFT_LEADER');
   managedBy.innerHTML = shifts.length ? shifts.map((member) => `<option value="${esc(member.email)}">${esc(memberName(member))} · ${esc(member.email)}</option>`).join('') : '<option value="">Add a Shift Leader first</option>';
   if (typeof managedByField !== 'undefined') managedByField.classList.toggle('hidden', memberRole.value === 'SHIFT_LEADER');
+  if (typeof memberEmail !== 'undefined') {
+    memberEmail.value = '';
+    memberEmail.removeAttribute('readonly');
+    memberEmail.placeholder = memberRole.value === 'SHIFT_LEADER' ? 'Shift leader company email' : 'Leader company email';
+  }
 }
 
 function loadMembers() {
@@ -65,7 +72,7 @@ function addMember() {
   const email = memberEmail.value.trim().toLowerCase();
   if (!familyManage.value || !email) return;
   api(`/api/families/${encodeURIComponent(familyManage.value)}/members`, { method: 'POST', body: JSON.stringify({ email, display_name: memberProfile.dataset.displayName || '', role: memberRole.value, managed_by: managedBy.value }) })
-    .then(() => { memberEmail.value = ''; memberProfile.textContent = ''; loadMembers(); })
+    .then(() => { memberEmail.value = ''; memberProfile.textContent = ''; memberProfile.dataset.displayName = ''; loadMembers(); })
     .catch((error) => showToast(error.message || 'Cannot add leader', 'error'));
 }
 
@@ -82,7 +89,7 @@ async function lookupMemberProfile() {
   try {
     const profile = await api(`/api/directory/lookup?email=${encodeURIComponent(email)}`);
     memberProfile.dataset.displayName = profile.display_name || email;
-    memberProfile.textContent = profile.source === 'microsoft-graph' ? `Teams profile: ${profile.display_name || email}` : `Teams profile pending: ${profile.display_name || email} (Microsoft Graph permission required for the official name)`;
+    memberProfile.textContent = `${profile.display_name || email}${profile.title ? ` · ${profile.title}` : ''}`;
   } catch (error) {
     memberProfile.dataset.displayName = '';
     memberProfile.textContent = error.message || 'Profile not found';
