@@ -1,6 +1,8 @@
 let selectedFamily = '';
 let familyMemberCache = {};
 let familyLoadToken = 0;
+let groupsVisible = true;
+let familyDetailOpen = true;
 
 function memberName(member) {
   const name = String(member.display_name || '').trim();
@@ -43,10 +45,11 @@ function renderGroupCards(groups) {
 function renderFamilyDetail(name, members) {
   const detail = document.getElementById('familyDetail');
   if (!detail) return;
+  familyDetailOpen = true;
   const shifts = members.filter((member) => member.role === 'SHIFT_LEADER');
   const leaders = members.filter((member) => member.role !== 'SHIFT_LEADER');
   if (!shifts.length) {
-    detail.innerHTML = `<div class="group-detail-head"><div><h3>${esc(name)}</h3><p>Member roster</p></div><span class="group-detail-badge">${members.length} members</span></div><div class="member-roster">${members.map((member) => `<div class="report-row"><div><b>${esc(memberName(member))}</b><small>${esc(member.email)}</small><em>${esc(member.title || roleLabel(member.role))}</em></div></div>`).join('')}</div>`;
+    detail.innerHTML = `<div class="group-detail-head"><div><h3>${esc(name)}</h3><p>Member roster</p></div><div class="group-detail-head-actions"><span class="group-detail-badge">${members.length} members</span><button type="button" class="btn detail-toggle" onclick="toggleFamilyDetail()" aria-expanded="true" title="Hide or show members"><span aria-hidden="true">⌃</span><span>Hide members</span></button></div></div><div id="familyDetailBody" class="member-roster">${members.map((member) => `<div class="report-row"><div><b>${esc(memberName(member))}</b><small>${esc(member.email)}</small><em>${esc(member.title || roleLabel(member.role))}</em></div></div>`).join('')}</div>`;
     detail.classList.remove('hidden');
     return;
   }
@@ -57,8 +60,34 @@ function renderFamilyDetail(name, members) {
     return `<article class="owner-card"><div class="owner-card-head"><span class="owner-avatar">${esc(initials(memberName(shift)))}</span><div><h4>${esc(memberName(shift))}</h4><div class="meta">${esc(shift.email)}</div><span class="owner-title">${esc(shift.title || roleLabel(shift.role))}</span></div></div><div class="report-list">${reports.length ? reports.map((leader) => `<div class="report-row"><div><b>${esc(memberName(leader))}</b><small>${esc(leader.email)}</small><em>${esc(leader.title || roleLabel(leader.role))}</em></div></div>`).join('') : '<div class="unassigned-note">No leaders assigned to this owner.</div>'}</div></article>`;
   }).join('');
   const unassigned = leaders.filter((leader) => !assigned.has(leader.email.toLowerCase()) && !(leader.managed_by || '').trim());
-  detail.innerHTML = `<div class="group-detail-head"><div><h3>${esc(name)}</h3><p>Member roster and reporting ownership</p></div><span class="group-detail-badge">${members.length} members · ${shifts.length} owners</span></div><div class="group-tree">${tree || '<div class="unassigned-note">No shift leader configured for this group.</div>'}</div>${unassigned.length ? `<div class="unassigned-note">Unassigned leaders: ${unassigned.map((leader) => esc(memberName(leader))).join(', ')}</div>` : ''}`;
+  detail.innerHTML = `<div class="group-detail-head"><div><h3>${esc(name)}</h3><p>Member roster and reporting ownership</p></div><div class="group-detail-head-actions"><span class="group-detail-badge">${members.length} members · ${shifts.length} owners</span><button type="button" class="btn detail-toggle" onclick="toggleFamilyDetail()" aria-expanded="true" title="Hide or show members"><span aria-hidden="true">⌃</span><span>Hide members</span></button></div></div><div id="familyDetailBody" class="group-tree">${tree || '<div class="unassigned-note">No shift leader configured for this group.</div>'}</div>${unassigned.length ? `<div id="familyDetailUnassigned" class="unassigned-note">Unassigned leaders: ${unassigned.map((leader) => esc(memberName(leader))).join(', ')}</div>` : ''}`;
   detail.classList.remove('hidden');
+}
+
+function toggleGroups() {
+  const overview = document.getElementById('familyOverview');
+  const detail = document.getElementById('familyDetail');
+  const button = document.getElementById('toggleGroupsBtn');
+  groupsVisible = !groupsVisible;
+  overview?.classList.toggle('hidden', !groupsVisible);
+  if (!groupsVisible) detail?.classList.add('hidden');
+  if (button) {
+    button.setAttribute('aria-expanded', String(groupsVisible));
+    button.innerHTML = `<span aria-hidden="true">${groupsVisible ? '⌃' : '⌄'}</span><span>${groupsVisible ? 'Hide groups' : 'Show groups'}</span>`;
+  }
+}
+
+function toggleFamilyDetail() {
+  const body = document.getElementById('familyDetailBody');
+  const unassigned = document.getElementById('familyDetailUnassigned');
+  const button = document.querySelector('.detail-toggle');
+  familyDetailOpen = !familyDetailOpen;
+  body?.classList.toggle('hidden', !familyDetailOpen);
+  unassigned?.classList.toggle('hidden', !familyDetailOpen);
+  if (button) {
+    button.setAttribute('aria-expanded', String(familyDetailOpen));
+    button.innerHTML = `<span aria-hidden="true">${familyDetailOpen ? '⌃' : '⌄'}</span><span>${familyDetailOpen ? 'Hide members' : 'Show members'}</span>`;
+  }
 }
 
 async function selectFamily(name) {
