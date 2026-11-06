@@ -24,7 +24,7 @@ function openTicket(id) {
   expandedTickets[id] = true;
   const ticket = state.tickets.find((item) => item.id === id);
   renderAll();
-  if (ticket && ticket.status === 'WAITING FOR SHIFT LEADER CONFIRMATION') patch(id, { status: 'READ' }).catch((error) => showToast(error.message || 'Cannot mark READ', 'error'));
+  if (ticket && ticket.status === 'SHIFT LEADER CONFIRMED' && ticket.can_manage) patch(id, { status: 'READ' }).catch((error) => showToast(error.message || 'Cannot mark READ', 'error'));
 }
 
 function showHaveLine(id) {
@@ -76,6 +76,7 @@ async function completeSharing(id) {
   if (workflowSubmitting[id]) return;
   const line = (document.getElementById(`line-${id}`)?.value || '').trim();
   if (!line) { showToast('Please enter Line ID', 'error'); return; }
+  if (!(leaderMedia[id] || []).length) { showToast('Please add sharing image or video', 'error'); return; }
   const button = document.querySelector(`#have-line-${CSS.escape(id)} button`);
   workflowSubmitting[id] = true;
   if (button) { button.disabled = true; button.textContent = 'SUBMITTING...'; }

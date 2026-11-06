@@ -12,8 +12,9 @@ function renderFamilies() {
 
 function renderMembers() {
   if (typeof familyMembers === 'undefined') return;
+  const roleLabel = (role) => role === 'SHIFT_LEADER' ? 'Shift leader' : 'Leader khu vực';
   familyMembers.innerHTML = configuredMembers.length
-    ? configuredMembers.map((member) => `<span class="family">${esc(member.display_name || member.email)} · ${esc(member.email)} · ${esc(member.role)} <button onclick="removeMember('${esc(member.email)}')">×</button></span>`).join('')
+    ? configuredMembers.map((member) => `<span class="family">${esc(member.display_name || member.email)} · ${esc(member.email)} · ${roleLabel(member.role)} <button onclick="removeMember('${esc(member.email)}')">×</button></span>`).join('')
     : '<span class="meta">No members configured for this family.</span>';
 }
 
