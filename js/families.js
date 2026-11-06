@@ -8,6 +8,13 @@ function renderFamilies() {
   familyManage.innerHTML = state.families.map((item) => `<option>${esc(item)}</option>`).join('');
   familyManage.value = state.families.includes(previous) ? previous : (state.families[0] || '');
   loadMembers();
+  loadFamilyOverview();
+}
+
+async function loadFamilyOverview() {
+  if (typeof familyOverview === 'undefined') return;
+  const groups = await Promise.all(state.families.map(async (name) => ({ name, members: await api(`/api/families/${encodeURIComponent(name)}/members`).catch(() => []) })));
+  familyOverview.innerHTML = groups.map((group) => `<article class="group-card"><h4>${esc(group.name)}</h4><div class="group-count">${group.members.length} configured leader${group.members.length === 1 ? '' : 's'}</div><div class="group-members">${group.members.length ? group.members.map((member) => `<span class="group-member"><b>${esc(member.display_name || member.email)}</b>${esc(member.email)}<br>${member.role === 'SHIFT_LEADER' ? 'Shift leader' : 'Leader khu vực'}</span>`).join('') : '<span class="meta">No leaders configured</span>'}</div></article>`).join('');
 }
 
 function renderMembers() {
@@ -52,7 +59,9 @@ async function lookupMemberProfile() {
   try {
     const profile = await api(`/api/directory/lookup?email=${encodeURIComponent(email)}`);
     memberProfile.dataset.displayName = profile.display_name || email;
-    memberProfile.textContent = `Teams profile: ${profile.display_name || email}`;
+    memberProfile.textContent = profile.source === 'microsoft-graph'
+      ? `Teams profile: ${profile.display_name || email}`
+      : `Teams profile pending: ${profile.display_name || email} (Microsoft Graph permission required for the official name)`;
   } catch (error) {
     memberProfile.dataset.displayName = '';
     memberProfile.textContent = error.message || 'Profile not found';
