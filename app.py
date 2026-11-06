@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 
 ROOT = Path(__file__).parent
 DB_PATH = Path(os.getenv("MU03_DATA_PATH", str(ROOT / "mu03_ru.sqlite3")))
-DEFAULT_FAMILIES = ["Gen 4", "Gen 5", "HTIW", "Grinder", "D&F", "Nailer", "Sub Line"]
+DEFAULT_FAMILIES = ["Gen 4", "Gen 5", "HTIW", "Grinder", "D&F", "Nailer", "Sub Line", "ALL MU03"]
 DEFAULT_LEADER = "Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)"
 ROLE_RANK = {"MEMBER": 1, "AREA_LEADER": 2, "SHIFT_LEADER": 3, "ADMIN": 4}
 ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", "snaptik.vn_7616226358024310033.mp4": "video/mp4"}
@@ -61,6 +61,7 @@ def db():
                     PRIMARY KEY(family_owner, family_name, email)
                 )""")
                 add_column(conn, "family_members", "display_name", "TEXT NOT NULL DEFAULT ''")
+                conn.execute("UPDATE family_members SET role='AREA_LEADER' WHERE role='MEMBER'")
                 conn.commit()
                 SCHEMA_READY = True
     return conn
@@ -120,6 +121,9 @@ def member_rows(conn, owner, name):
 
 
 def family_access(conn, user, name):
+    if name == "ALL MU03":
+        row = conn.execute("SELECT * FROM families WHERE name=? ORDER BY created_at LIMIT 1", (name,)).fetchone()
+        return (row, "ALL") if row else (None, None)
     own = family_row(conn, user, name)
     if own:
         return own, "ADMIN"
@@ -136,7 +140,7 @@ def highest_role(conn, user):
 
 
 def user_can_view(conn, row, user):
-    if row["owner"] == user:
+    if row["family"] == "ALL MU03" or row["owner"] == user:
         return True
     return conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (row["family_owner"], row["family"], user)).fetchone() is not None
 
@@ -149,8 +153,12 @@ def ticket_json(row, conn=None, user=None):
         item["leader"] = item.get("area_leader") or DEFAULT_LEADER
     if conn and user:
         role = highest_role(conn, user)
-        is_shift = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
-        is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
+        if item["family"] == "ALL MU03":
+            is_shift = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='SHIFT_LEADER'", (user,)).fetchone() is not None
+            is_area = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='AREA_LEADER'", (user,)).fetchone() is not None
+        else:
+            is_shift = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
+            is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
         item["can_confirm"] = is_shift
         item["can_manage"] = is_area
         item["role"] = role
@@ -217,7 +225,7 @@ def lookup_directory(email: str, request: Request):
 def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
     conn = db()
-    query = "SELECT * FROM tickets WHERE (owner=? OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))"
+    query = "SELECT * FROM tickets WHERE (family='ALL MU03' OR owner=? OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))"
     args = [user, user]
     if day != "all":
         query += " AND day=?"
@@ -271,6 +279,13 @@ async def update_ticket(ticket_id: str, request: Request):
     if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and not current.get("can_manage"):
         conn.close()
         raise HTTPException(403, "Only the area leader can manage this ticket")
+    if status == "LINE SHARING COMPLETED":
+        if not str(payload.get("line_id", "")).strip():
+            conn.close()
+            raise HTTPException(400, "Line ID is required")
+        if not payload.get("media"):
+            conn.close()
+            raise HTTPException(400, "Sharing image or video is required")
     if status == "CLOSED" and not current.get("can_confirm"):
         conn.close()
         raise HTTPException(403, "Only the assigned shift leader can close this ticket")
@@ -302,6 +317,8 @@ def list_families(request: Request):
         ON m.family_owner=f.owner AND m.family_name=f.name
         WHERE f.owner=? OR lower(m.email)=lower(?) ORDER BY f.created_at""", (user, user)).fetchall()
     result = [row["name"] for row in rows]
+    if "ALL MU03" not in result:
+        result.append("ALL MU03")
     conn.close()
     return result
 
@@ -341,7 +358,7 @@ async def add_member(name: str, request: Request):
     profile = directory_lookup(request, email)
     display_name = str(payload.get("display_name") or profile["display_name"]).strip()
     role = str(payload.get("role", "MEMBER")).strip().upper()
-    if "@" not in email or role not in ("MEMBER", "AREA_LEADER", "SHIFT_LEADER"):
+    if "@" not in email or role not in ("AREA_LEADER", "SHIFT_LEADER"):
         raise HTTPException(400, "A company email and valid role are required")
     conn = db()
     if not family_row(conn, user, name):
