@@ -1,0 +1,6 @@
+.databricks/
+*.sqlite3
+build/
+work/
+.venv/
+node_modules/
