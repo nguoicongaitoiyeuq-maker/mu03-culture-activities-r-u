@@ -24,7 +24,7 @@ function openTicket(id) {
   expandedTickets[id] = true;
   const ticket = state.tickets.find((item) => item.id === id);
   renderAll();
-  if (ticket && ticket.status === 'SHIFT LEADER CONFIRMED' && ticket.can_manage) patch(id, { status: 'READ' }).catch((error) => showToast(error.message || 'Cannot mark READ', 'error'));
+  if (ticket && ticket.status === 'WAITING FOR LEADER READ' && ticket.can_manage) patch(id, { status: 'READ' }).catch((error) => showToast(error.message || 'Cannot mark READ', 'error'));
 }
 
 function showHaveLine(id) {
@@ -37,8 +37,8 @@ function renderInbox() {
   inboxCount.textContent = `${items.length} open`;
   inboxList.innerHTML = items.length ? items.map((ticket) => {
     const expanded = expandedTickets[ticket.id] || !['WAITING FOR SHIFT LEADER CONFIRMATION', 'WAITING FOR LEADER READ'].includes(ticket.status);
-    const canConfirm = Boolean(ticket.can_confirm) && ticket.status === 'WAITING FOR SHIFT LEADER CONFIRMATION';
-    const canManage = Boolean(ticket.can_manage) && ['READ', 'SHIFT LEADER CONFIRMED', 'WAITING FOR LINE SHARING'].includes(ticket.status);
+    const canConfirm = Boolean(ticket.can_confirm) && ticket.status === 'READ';
+    const canManage = Boolean(ticket.can_manage) && ['SHIFT LEADER CONFIRMED', 'READ', 'WAITING FOR LINE SHARING'].includes(ticket.status);
     const actions = canConfirm
       ? `<div class="workflow-step"><span class="step-label">Step 1 · Shift leader confirmation</span><div class="leader-choice"><button class="btn green" onclick="confirmShift('${ticket.id}')">CONFIRM &amp; SEND TO AREA</button><button class="btn danger-outline" onclick="rejectShift('${ticket.id}')">REJECT</button></div></div>`
       : canManage
