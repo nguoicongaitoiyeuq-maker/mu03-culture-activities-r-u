@@ -39,6 +39,62 @@ GEN4_LEADERS = [
     ("minhtam.nguyen@ttigroup.com.vn", "Nguyễn Minh Tâm", "Production Line Leader", "AREA_LEADER", "kimchung.truong@ttigroup.com.vn"),
     ("anh.nguyen1@ttigroup.com.vn", "Nguyễn Hoàng Anh", "Production Line Leader", "AREA_LEADER", "kimchung.truong@ttigroup.com.vn"),
 ]
+GRINDER_LEADERS = [
+    ("vanteo.nguyen07@ttigroup.com.vn", "Nguyễn Văn Tèo", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("vanhau.nong01@ttigroup.com.vn", "Nông Văn Hậu", "Production Line Leader", "AREA_LEADER", "vanteo.nguyen07@ttigroup.com.vn"),
+    ("khacquoc.phan@ttigroup.com.vn", "Phan Khắc Quốc", "Production Line Leader", "AREA_LEADER", "vanteo.nguyen07@ttigroup.com.vn"),
+    ("phuong.tran1@ttigroup.com.vn", "Trần Nguyễn Minh Phương", "Production Line Leader", "AREA_LEADER", "vanteo.nguyen07@ttigroup.com.vn"),
+    ("vandat.nguyen@ttigroup.com.vn", "Nguyễn Văn Đạt", "Production Line Leader", "AREA_LEADER", "vanteo.nguyen07@ttigroup.com.vn"),
+    ("quoccuong.duong@ttigroup.com.vn", "Dương Quốc Cường", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("vandanganh.vo@ttigroup.com.vn", "Võ Văn Đặng Anh", "Production Line Leader", "AREA_LEADER", "quoccuong.duong@ttigroup.com.vn"),
+    ("hoangnho.dang@ttigroup.com.vn", "Đặng Hoàng Nhớ", "Production Line Leader", "AREA_LEADER", "quoccuong.duong@ttigroup.com.vn"),
+    ("thanhnga.ly@ttigroup.com.vn", "Lý Thanh Nga", "Production Line Leader", "AREA_LEADER", "quoccuong.duong@ttigroup.com.vn"),
+    ("thuhang.nguyen@ttigroup.com.vn", "Nguyễn Thu Hằng", "Acting Line Leader", "AREA_LEADER", "quoccuong.duong@ttigroup.com.vn"),
+    ("nhung.nguyen4@ttigroup.com.vn", "Nguyễn Thị Hồng Nhung", "Acting Line Leader", "AREA_LEADER", "quoccuong.duong@ttigroup.com.vn"),
+]
+NAILER_LEADERS = [
+    ("thithuhuong.phan01@ttigroup.com.vn", "Phan Thị Thu Hương", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("thihang.nguyen03@ttigroup.com.vn", "Nguyễn Thị Hằng", "Production Line Leader", "AREA_LEADER", "thithuhuong.phan01@ttigroup.com.vn"),
+    ("thanhtam.duong@ttigroup.com.vn", "Dương Thanh Tâm", "Production Line Leader", "AREA_LEADER", "thithuhuong.phan01@ttigroup.com.vn"),
+    ("minhkhoi.phan@ttigroup.com.vn", "Phan Minh Khôi", "Production Line Leader", "AREA_LEADER", "thithuhuong.phan01@ttigroup.com.vn"),
+    ("tantrung.duong@ttigroup.com.vn", "Dương Tấn Trung", "Production Line Leader", "AREA_LEADER", "thithuhuong.phan01@ttigroup.com.vn"),
+    ("nguyenbinh.cao@ttigroup.com.vn", "Cao Nguyễn Bình", "Acting Line Leader", "AREA_LEADER", "thithuhuong.phan01@ttigroup.com.vn"),
+    ("vanloi.do@ttigroup.com.vn", "Đỗ Văn Lợi", "Acting Line Leader", "AREA_LEADER", "thithuhuong.phan01@ttigroup.com.vn"),
+    ("hoa.dang@ttigroup.com.vn", "Đặng Thị Thanh Hòa", "Acting Line Leader", "AREA_LEADER", "thithuhuong.phan01@ttigroup.com.vn"),
+    ("thisau.pham01@ttigroup.com.vn", "Phạm Thị Sáu", "Senior Production Line Leader", "AREA_LEADER", "thithuhuong.phan01@ttigroup.com.vn"),
+    ("lamhuyenmai.huynh@ttigroup.com.vn", "Huỳnh Lâm Huyền Mai", "Senior Production Shift Leader", "SHIFT_LEADER", ""),
+    ("chi.nguyen1@ttigroup.com.vn", "Nguyễn Thị Kim Chi", "Production Line Leader", "AREA_LEADER", "lamhuyenmai.huynh@ttigroup.com.vn"),
+    ("dinhduc.tran@ttigroup.com.vn", "Trần Đình Đức", "Production Line Leader", "AREA_LEADER", "lamhuyenmai.huynh@ttigroup.com.vn"),
+    ("truong.nguyen2@ttigroup.com.vn", "Nguyễn Nhật Trường", "Production Line Leader", "AREA_LEADER", "lamhuyenmai.huynh@ttigroup.com.vn"),
+    ("huynhngoc.duong@ttigroup.com.vn", "Dương Huỳnh Ngọc", "Acting Line Leader", "AREA_LEADER", "lamhuyenmai.huynh@ttigroup.com.vn"),
+]
+DF_LEADERS = [
+    ("lam.nguyen1@ttigroup.com.vn", "Nguyễn Thanh Lâm", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("ducdan.ho@ttigroup.com.vn", "Hồ Đức Dân", "Production Line Leader", "AREA_LEADER", "lam.nguyen1@ttigroup.com.vn"),
+    ("vantuan.nguyen10@ttigroup.com.vn", "Nguyễn Văn Tuấn", "Senior Production Line Leader", "AREA_LEADER", "lam.nguyen1@ttigroup.com.vn"),
+    ("thicamthom.tran01@ttigroup.com.vn", "Trần Thị Cẩm Thơm", "Production Line Leader", "AREA_LEADER", "lam.nguyen1@ttigroup.com.vn"),
+    ("thanhdat.le4@ttigroup.com.vn", "Lê Thành Đạt", "Acting Line Leader", "AREA_LEADER", "lam.nguyen1@ttigroup.com.vn"),
+    ("tanphat.pham2@ttigroup.com.vn", "Phạm Tấn Phát", "Acting Line Leader", "AREA_LEADER", "lam.nguyen1@ttigroup.com.vn"),
+    ("thuy.nguyen6@ttigroup.com.vn", "Nguyễn Thị Thu Thủy", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("hoaivinh.do@ttigroup.com.vn", "Đổ Hoài Vinh", "Production Line Leader", "AREA_LEADER", "thuy.nguyen6@ttigroup.com.vn"),
+    ("tien.nguyen@ttigroup.com.vn", "Nguyễn Thị Cẩm Tiên", "Production Line Leader", "AREA_LEADER", "thuy.nguyen6@ttigroup.com.vn"),
+    ("phuong.tran@ttigroup.com.vn", "Trần Thị Mỹ Phượng", "Production Line Leader", "AREA_LEADER", "thuy.nguyen6@ttigroup.com.vn"),
+    ("vantien.tran03@ttigroup.com.vn", "Trần Văn Tiền", "Production Line Leader", "AREA_LEADER", "thuy.nguyen6@ttigroup.com.vn"),
+    ("chihau.le@ttigroup.com.vn", "Lê Chí Hậu", "Acting Line Leader", "AREA_LEADER", "thuy.nguyen6@ttigroup.com.vn"),
+    ("quangthang.le1@ttigroup.com.vn", "Lê Quang Thắng", "Acting Line Leader", "AREA_LEADER", "thuy.nguyen6@ttigroup.com.vn"),
+]
+SUBLINE_LEADERS = [
+    ("danghai.le01@ttigroup.com.vn", "Lê Đăng Hải", "Senior Production Line Leader", "SHIFT_LEADER", ""),
+    ("thingocyen.le@ttigroup.com.vn", "Lê Thị Ngọc Yến", "Senior Production Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+    ("thiphu.nguyen03@ttigroup.com.vn", "Nguyễn Thị Phú", "Production Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+    ("thingocgiau.vo@ttigroup.com.vn", "Võ Thị Ngọc Giàu", "Production Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+    ("thimyuyen.huynh@ttigroup.com.vn", "Huỳnh Thị Mỹ Uyên", "Acting Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+    ("thithu.nguyen2@ttigroup.com.vn", "Nguyễn Thị Thu", "Acting Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+    ("trungkien.tran2@ttigroup.com.vn", "Trần Trung Kiên", "Acting Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+    ("vanthun.la@ttigroup.com.vn", "La Văn Thun", "Acting Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+    ("thiquynhnhu.bui@ttigroup.com.vn", "Bùi Thị Quỳnh Như", "Acting Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+    ("tranvuduy.hoang@ttigroup.com.vn", "Hoàng Trần Vũ Duy", "Acting Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
+]
 app = FastAPI(title="MU03 Production Communication")
 SCHEMA_LOCK = threading.Lock()
 SCHEMA_READY = False
@@ -151,16 +207,21 @@ def ensure_families(conn, user):
         for name in DEFAULT_FAMILIES:
             conn.execute("INSERT OR IGNORE INTO families(owner,name,created_at) VALUES(?,?,?)", (user, name, now_iso()))
         conn.commit()
-    htiw = family_row(conn, user, "HTIW")
-    if htiw:
-        for email, display_name, title, role, managed_by in HTIW_LEADERS:
-            conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)", (user, "HTIW", email, display_name, title, role, managed_by, now_iso()))
-        conn.commit()
-    gen4 = family_row(conn, user, "Gen 4")
-    if gen4:
-        for email, display_name, title, role, managed_by in GEN4_LEADERS:
-            conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)", (user, "Gen 4", email, display_name, title, role, managed_by, now_iso()))
-        conn.commit()
+    for family_name, members in (
+        ("HTIW", HTIW_LEADERS),
+        ("Gen 4", GEN4_LEADERS),
+        ("Grinder", GRINDER_LEADERS),
+        ("Nailer", NAILER_LEADERS),
+        ("D&F", DF_LEADERS),
+        ("Sub Line", SUBLINE_LEADERS),
+    ):
+        if family_row(conn, user, family_name):
+            for email, display_name, title, role, managed_by in members:
+                conn.execute(
+                    "INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                    (user, family_name, email, display_name, title, role, managed_by, now_iso()),
+                )
+    conn.commit()
 
 
 def family_row(conn, owner, name):
