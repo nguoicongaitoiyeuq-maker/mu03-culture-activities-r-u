@@ -38,7 +38,7 @@ function renderGroupCards(groups) {
     const preview = shifts.length
       ? shifts.slice(0, 2).map((shift) => `<span><b>Owner</b>${esc(memberName(shift))}</span>`).join('')
       : '<span>No shift leader assigned</span>';
-    return `<button type="button" class="group-card" onclick="selectFamily('${esc(group.name)}')"><img class="group-card-logo" src="/asset/10.jpg" alt=""><div class="group-card-top"><span>Group ${String(index + 1).padStart(2, '0')}</span><span class="group-open">Open roster →</span></div><h4>${esc(group.name)}</h4><div class="group-count">${group.members.length} configured members</div><div class="group-roster-preview">${preview}</div></button>`;
+    return `<button type="button" class="group-card" onclick="selectFamily('${esc(group.name)}')"><div class="group-card-top"><span>Group ${String(index + 1).padStart(2, '0')}</span></div><h4>${esc(group.name)}</h4><div class="group-count">${group.members.length} configured members</div><div class="group-roster-preview">${preview}</div></button>`;
   }).join('');
 }
 
