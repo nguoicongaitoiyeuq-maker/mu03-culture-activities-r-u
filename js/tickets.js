@@ -12,9 +12,12 @@ function renderAll() {
 function applyState(session, tickets, familiesList) {
   state.user = session.user;
   state.today = session.today;
+  state.role = session.role || 'MEMBER';
+  state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
   state.families = familiesList;
   userPill.textContent = `Account: ${session.user}`;
+  if (typeof ownerEmail !== 'undefined') ownerEmail.value = session.user;
   daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
   daySelect.value = state.day;
   renderAll();
@@ -55,7 +58,7 @@ async function createTicket() {
   ticketSubmitting = true;
   if (button) { button.disabled = true; button.textContent = 'SENDING...'; }
   try {
-    const ticket = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, leader: leader.value, cause: 'General', department: state.user, media: state.media }) });
+    const ticket = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, cause: 'General', media: state.media }) });
     clearForm();
     await load();
     showPage('dashboard');
@@ -67,7 +70,7 @@ async function createTicket() {
 function clearForm() {
   title.value = '';
   content.value = '';
-  leader.value = 'Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)';
+  if (typeof ownerEmail !== 'undefined') ownerEmail.value = state.user;
   state.media = [];
   mediaPreview.innerHTML = '';
 }

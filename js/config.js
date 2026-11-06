@@ -1,7 +1,7 @@
 const slides = ['4.webp'];
 let slideIndex = 0;
 let slideFront = true;
-let state = { user: '', today: '', tickets: [], families: [], day: 'all', media: [] };
+let state = { user: '', today: '', role: 'MEMBER', teamsConfigured: false, tickets: [], families: [], day: 'all', media: [] };
 let leaderMedia = {};
 let expandedTickets = {};
 
