@@ -16,6 +16,18 @@ DEFAULT_FAMILIES = ["Gen 4", "Gen 5", "HTIW", "Grinder", "D&F", "Nailer", "Sub L
 DEFAULT_LEADER = "Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)"
 ROLE_RANK = {"MEMBER": 1, "AREA_LEADER": 2, "SHIFT_LEADER": 3, "ADMIN": 4}
 ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", "snaptik.vn_7616226358024310033.mp4": "video/mp4"}
+HTIW_LEADERS = [
+    ("vandai.dang@ttigroup.com.vn", "Đặng Văn Đại", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("ngochieu.dang@ttigroup.com.vn", "Đặng Ngọc Hiếu", "Production Line Leader", "AREA_LEADER", "vandai.dang@ttigroup.com.vn"),
+    ("tanphat.cao@ttigroup.com.vn", "Cao Tấn Phát", "Acting Line Leader", "AREA_LEADER", "vandai.dang@ttigroup.com.vn"),
+    ("namtri.vo@ttigroup.com.vn", "Võ Nam Trí", "Acting Line Leader", "AREA_LEADER", "vandai.dang@ttigroup.com.vn"),
+    ("vankien.vo@ttigroup.com.vn", "Võ Văn Kiên", "Junior Production Line Leader", "AREA_LEADER", "vandai.dang@ttigroup.com.vn"),
+    ("quochai.pham@ttigroup.com.vn", "Phạm Quốc Hải", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("viettrinh.vo@ttigroup.com.vn", "Võ Thị Việt Trinh", "Production Line Leader", "AREA_LEADER", "quochai.pham@ttigroup.com.vn"),
+    ("vandam.nguyen@ttigroup.com.vn", "Nguyễn Văn Đảm", "Production Line Leader", "AREA_LEADER", "quochai.pham@ttigroup.com.vn"),
+    ("minhduong.hua@ttigroup.com.vn", "Hứa Minh Đương", "Production Line Leader", "AREA_LEADER", "quochai.pham@ttigroup.com.vn"),
+    ("ngocthi.nguyen@ttigroup.com.vn", "Nguyễn Ngọc Thi", "Acting Line Leader", "AREA_LEADER", "quochai.pham@ttigroup.com.vn"),
+]
 app = FastAPI(title="MU03 Production Communication")
 SCHEMA_LOCK = threading.Lock()
 SCHEMA_READY = False
@@ -127,6 +139,11 @@ def ensure_families(conn, user):
     if not has_own and not is_member:
         for name in DEFAULT_FAMILIES:
             conn.execute("INSERT OR IGNORE INTO families(owner,name,created_at) VALUES(?,?,?)", (user, name, now_iso()))
+        conn.commit()
+    htiw = family_row(conn, user, "HTIW")
+    if htiw:
+        for email, display_name, title, role, managed_by in HTIW_LEADERS:
+            conn.execute("INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)", (user, "HTIW", email, display_name, title, role, managed_by, now_iso()))
         conn.commit()
 
 
