@@ -27,7 +27,7 @@ CULTURE_GROUP_MEMBERS = [
     ("hailam.hoang@ttigroup.com.vn", "Hoàng Hải Lâm", "Senior Production Supervisor", "MEMBER", ""),
     ("thanhdat.le2@ttigroup.com.vn", "Lê Thành Đạt", "Acting Line Leader", "AREA_LEADER", ""),
 ]
-ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", "8.jpg": "image/jpeg", "10.jpg": "image/jpeg", "snaptik.vn_7616226358024310033.mp4": "video/mp4"}
+ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", "8.jpg": "image/jpeg", "10.jpg": "image/jpeg", "12.png": "image/png", "snaptik.vn_7616226358024310033.mp4": "video/mp4"}
 HTIW_LEADERS = [
     ("vandai.dang@ttigroup.com.vn", "Đặng Văn Đại", "Production Shift Leader", "SHIFT_LEADER", ""),
     ("ngochieu.dang@ttigroup.com.vn", "Đặng Ngọc Hiếu", "Production Line Leader", "AREA_LEADER", "vandai.dang@ttigroup.com.vn"),
