@@ -24,7 +24,7 @@ CULTURE_GROUP_MEMBERS = [
     ("catnhan.le@ttigroup.com.vn", "Lê Cát Nhàn", "Production Supervisor", "MEMBER", ""),
     ("tuannhu.le01@ttigroup.com.vn", "Lê Tuấn Nhu", "Senior Production Supervisor", "MEMBER", ""),
     ("minhquan.pham1@ttigroup.com.vn", "Phạm Minh Quân", "Senior Production Supervisor", "MEMBER", ""),
-    ("hailam.hoang@ttigroup.com.vn", "Hoàng Hải Lâm", "Production Supervisor", "MEMBER", ""),
+    ("hailam.hoang@ttigroup.com.vn", "Hoàng Hải Lâm", "Senior Production Supervisor", "MEMBER", ""),
     ("thanhdat.le2@ttigroup.com.vn", "Lê Thành Đạt", "Acting Line Leader", "AREA_LEADER", ""),
 ]
 ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", "10.jpg": "image/jpeg", "snaptik.vn_7616226358024310033.mp4": "video/mp4"}
@@ -236,6 +236,8 @@ def ensure_families(conn, user):
             "INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)",
             (CULTURE_GROUP_OWNER, "Ban Văn Hóa", email, display_name, title, role, managed_by, now_iso()),
         )
+    for name in DEFAULT_FAMILIES:
+        conn.execute("INSERT OR IGNORE INTO families(owner,name,created_at) VALUES(?,?,?)", (CULTURE_GROUP_OWNER, name, now_iso()))
     conn.commit()
     has_own = conn.execute("SELECT 1 FROM families WHERE owner=? LIMIT 1", (user,)).fetchone()
     is_member = conn.execute("SELECT 1 FROM family_members WHERE email=? LIMIT 1", (user,)).fetchone()
@@ -252,12 +254,13 @@ def ensure_families(conn, user):
         ("D&F", DF_LEADERS),
         ("Sub Line", SUBLINE_LEADERS),
     ):
-        if family_row(conn, user, family_name):
-            for email, display_name, title, role, managed_by in members:
-                conn.execute(
-                    "INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)",
-                    (user, family_name, email, display_name, title, role, managed_by, now_iso()),
-                )
+        for owner in dict.fromkeys((user, CULTURE_GROUP_OWNER)):
+            if family_row(conn, owner, family_name):
+                for email, display_name, title, role, managed_by in members:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)",
+                        (owner, family_name, email, display_name, title, role, managed_by, now_iso()),
+                    )
     conn.commit()
 
 
@@ -273,6 +276,10 @@ def family_access(conn, user, name):
     if name == "ALL MU03":
         row = conn.execute("SELECT * FROM families WHERE name=? ORDER BY created_at LIMIT 1", (name,)).fetchone()
         return (row, "ALL") if row else (None, None)
+    if conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name='Ban Văn Hóa' AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, user)).fetchone():
+        shared = family_row(conn, CULTURE_GROUP_OWNER, name)
+        if shared:
+            return shared, "VIEWER"
     own = family_row(conn, user, name)
     if own:
         return own, "ADMIN"
@@ -470,9 +477,13 @@ def list_families(request: Request):
     user = user_email(request)
     conn = db()
     ensure_families(conn, user)
-    rows = conn.execute("""SELECT DISTINCT f.name FROM families f LEFT JOIN family_members m
-        ON m.family_owner=f.owner AND m.family_name=f.name
-        WHERE f.owner=? OR lower(m.email)=lower(?) ORDER BY f.created_at""", (user, user)).fetchall()
+    is_culture_member = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name='Ban Văn Hóa' AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, user)).fetchone()
+    if is_culture_member:
+        rows = conn.execute("SELECT DISTINCT name FROM families WHERE owner=? ORDER BY created_at", (CULTURE_GROUP_OWNER,)).fetchall()
+    else:
+        rows = conn.execute("""SELECT DISTINCT f.name FROM families f LEFT JOIN family_members m
+            ON m.family_owner=f.owner AND m.family_name=f.name
+            WHERE f.owner=? OR lower(m.email)=lower(?) ORDER BY f.created_at""", (user, user)).fetchall()
     result = [row["name"] for row in rows]
     if "ALL MU03" not in result:
         result.append("ALL MU03")

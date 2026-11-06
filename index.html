@@ -32,6 +32,7 @@
 .group-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 .group-card{min-height:190px;border:1px solid #efd5d8;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
 .group-card:focus-visible{outline:3px solid #ef233c66;outline-offset:3px}
+.group-card-logo{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:9px;object-fit:cover;box-shadow:0 4px 9px #7a1e2924}
 .group-card-top{display:flex;justify-content:space-between;align-items:center;color:#a30e1b;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
 .group-open{color:#667085;font-size:10px;letter-spacing:0;text-transform:none}
 .group-card h4{font-size:22px;margin:24px 0 4px}
@@ -44,6 +45,8 @@
 .group-detail-head h3{margin:0;font-size:25px}
 .group-detail-head p{margin:5px 0 0;color:#ffe5e8;font-size:12px}
 .group-detail-head-actions{display:flex;align-items:center;gap:10px}
+.group-detail-title{display:flex;align-items:center;gap:12px}
+.group-detail-logo{width:40px;height:40px;border-radius:11px;object-fit:cover;box-shadow:0 5px 11px #3100084d}
 .group-detail-badge{padding:8px 12px;border:1px solid #ffffff55;border-radius:999px;color:#fff;font-size:12px;font-weight:800;white-space:nowrap}
 .group-detail-head .detail-toggle{border-color:#ffffff66;background:#ffffff1c;color:#fff;box-shadow:none}
 .group-tree{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:22px}
@@ -59,6 +62,7 @@
 .report-row b{display:block;font-size:12px;color:#252a31}
 .report-row small{display:block;margin-top:2px;color:#667085;overflow-wrap:anywhere}
 .report-row em{display:block;margin-top:3px;color:#7a1e29;font-size:10px;font-style:normal;font-weight:800}
+.member-frame{min-width:0;padding:1px 0}
 .member-roster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:22px}
 .unassigned-note{padding:18px 22px;color:#667085;font-size:12px}
 @media(max-width:1000px){.group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.group-tree{grid-template-columns:1fr}.member-roster{grid-template-columns:repeat(2,minmax(0,1fr))}}
