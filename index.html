@@ -24,6 +24,9 @@
 .groups-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border:1px solid #efd5d8;border-radius:16px;background:linear-gradient(120deg,#fff,#fff7f7);box-shadow:0 10px 24px #7a1e2910}
 .groups-toolbar h3{margin:0;color:#7a1e29;font-size:18px}
 .groups-toolbar p{margin:3px 0 0;color:#667085;font-size:12px}
+.groups-toolbar-actions{display:flex;align-items:center;gap:12px}
+.group-toggle,.detail-toggle{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;font-size:11px;white-space:nowrap}
+.group-toggle span:first-child,.detail-toggle span:first-child{font-size:15px;line-height:1}
 .groups-status{display:inline-flex;align-items:center;gap:7px;color:#667085;font-size:12px;white-space:nowrap}
 .groups-status:before{content:'';width:8px;height:8px;border-radius:50%;background:#24a36a;box-shadow:0 0 0 4px #24a36a1c}
 .group-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
@@ -40,7 +43,9 @@
 .group-detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:24px 26px;background:linear-gradient(120deg,#6f0b17,#c1121f 58%,#ef233c);color:#fff}
 .group-detail-head h3{margin:0;font-size:25px}
 .group-detail-head p{margin:5px 0 0;color:#ffe5e8;font-size:12px}
+.group-detail-head-actions{display:flex;align-items:center;gap:10px}
 .group-detail-badge{padding:8px 12px;border:1px solid #ffffff55;border-radius:999px;color:#fff;font-size:12px;font-weight:800;white-space:nowrap}
+.group-detail-head .detail-toggle{border-color:#ffffff66;background:#ffffff1c;color:#fff;box-shadow:none}
 .group-tree{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:22px}
 .owner-card{border:1px solid #edcbd0;border-radius:14px;padding:16px;background:linear-gradient(145deg,#fff,#fff8f8);box-shadow:0 7px 16px #7a1e2910}
 .owner-card-head{display:flex;gap:12px;align-items:flex-start;padding-bottom:13px;border-bottom:1px solid #f0dfe1}
@@ -50,14 +55,14 @@
 .owner-title{display:inline-block;margin-top:5px;color:#a30e1b;font-size:11px;font-weight:800}
 .report-list{display:grid;gap:9px;margin-top:14px}
 .report-row{display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:start;padding:9px 10px;border:1px solid #f0dfe1;border-radius:10px;background:#fff}
-.report-row:before{content:'L';width:24px;height:24px;display:grid;place-items:center;border-radius:8px;background:#fff0f1;color:#c1121f;font-size:11px;font-weight:900}
+.report-row:before{content:'';width:24px;height:24px;display:block;border-radius:8px;background:#e30613 url('/asset/10.jpg') center/cover no-repeat;box-shadow:0 2px 5px #7a1e2924}
 .report-row b{display:block;font-size:12px;color:#252a31}
 .report-row small{display:block;margin-top:2px;color:#667085;overflow-wrap:anywhere}
 .report-row em{display:block;margin-top:3px;color:#7a1e29;font-size:10px;font-style:normal;font-weight:800}
 .member-roster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:22px}
 .unassigned-note{padding:18px 22px;color:#667085;font-size:12px}
 @media(max-width:1000px){.group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.group-tree{grid-template-columns:1fr}.member-roster{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:700px){.groups-toolbar,.group-detail-head{display:block}.groups-status{margin-top:12px}.group-grid{grid-template-columns:1fr}.group-detail-badge{display:inline-block;margin-top:14px}.group-tree{padding:14px}.member-roster{grid-template-columns:1fr;padding:14px}}
+@media(max-width:700px){.groups-toolbar,.group-detail-head{display:block}.groups-toolbar-actions,.group-detail-head-actions{justify-content:space-between;margin-top:12px}.groups-status{margin-top:12px}.group-grid{grid-template-columns:1fr}.group-detail-badge{display:inline-block}.group-tree{padding:14px}.member-roster{grid-template-columns:1fr;padding:14px}}
 </style>
 </head>
 <body>
@@ -245,7 +250,10 @@
 <div class="groups-shell">
 <div class="groups-toolbar">
 <div><h3>Groups</h3><p>Click a group to open the complete member tree and owner assignments.</p></div>
+<div class="groups-toolbar-actions">
 <span id="groupsStatus" class="groups-status">Loading groups</span>
+<button id="toggleGroupsBtn" type="button" class="btn group-toggle" onclick="toggleGroups()" aria-expanded="true" title="Hide or show groups"><span aria-hidden="true">⌃</span><span>Hide groups</span></button>
+</div>
 </div>
 <div id="familyOverview" class="group-grid"></div>
 <div id="familyDetail" class="group-detail hidden"></div>
