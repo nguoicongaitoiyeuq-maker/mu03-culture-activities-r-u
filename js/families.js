@@ -1,99 +1,108 @@
-let configuredMembers = [];
+let selectedFamily = '';
+let familyMemberCache = {};
+let familyLoadToken = 0;
 
 function memberName(member) {
-  return member.display_name && member.display_name.toLowerCase() !== member.email.toLowerCase() ? member.display_name : member.email;
+  const name = String(member.display_name || '').trim();
+  return name && name.toLowerCase() !== String(member.email || '').toLowerCase() ? name : member.email;
 }
 
 function roleLabel(role) {
   return role === 'SHIFT_LEADER' ? 'Shift leader' : 'Leader';
 }
 
+function initials(name) {
+  return String(name || '?').split(/\s+/).filter(Boolean).slice(-2).map((part) => part[0]).join('').toUpperCase() || '?';
+}
+
+function familyNames() {
+  return state.families.filter((name) => name !== 'ALL MU03');
+}
+
 function renderFamilies() {
-  if (typeof memberEmail !== 'undefined') memberEmail.value = '';
-  if (typeof memberProfile !== 'undefined') { memberProfile.textContent = ''; memberProfile.dataset.displayName = ''; }
-  const visibleFamilies = state.families.filter((item) => item !== 'ALL MU03');
-  family.innerHTML = visibleFamilies.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join('') + '<option value="ALL MU03">All groups (MU03)</option>';
-  families.innerHTML = visibleFamilies.map((item) => `<span class="family">${esc(item)} <button onclick="removeFamily('${esc(item)}')">×</button></span>`).join('');
-  if (typeof familyManage === 'undefined') return;
-  const previous = familyManage.value;
-  familyManage.innerHTML = visibleFamilies.map((item) => `<option>${esc(item)}</option>`).join('');
-  familyManage.value = visibleFamilies.includes(previous) ? previous : (visibleFamilies[0] || '');
-  loadMembers();
+  if (!document.getElementById('familyOverview')) return;
   loadFamilyOverview();
 }
 
-async function loadFamilyOverview() {
-  if (typeof familyOverview === 'undefined') return;
-  const groups = await Promise.all(state.families.filter((name) => name !== 'ALL MU03').map(async (name) => ({ name, members: await api(`/api/families/${encodeURIComponent(name)}/members`).catch(() => []) })));
-  familyOverview.innerHTML = groups.map((group) => {
+function renderGroupCards(groups) {
+  const overview = document.getElementById('familyOverview');
+  if (!overview) return;
+  if (!groups.length) {
+    overview.innerHTML = '<div class="panel empty">No groups configured.</div>';
+    return;
+  }
+  overview.innerHTML = groups.map((group, index) => {
     const shifts = group.members.filter((member) => member.role === 'SHIFT_LEADER');
-    const leaders = group.members.filter((member) => member.role === 'AREA_LEADER');
-    const shiftCards = shifts.map((shift) => `<div class="group-member"><b>${esc(memberName(shift))}</b><small>${esc(shift.email)}</small><em>${esc(shift.title || 'Shift leader')}</em><div class="reports">${leaders.filter((leader) => (leader.managed_by || '').toLowerCase() === shift.email.toLowerCase()).map((leader) => `<span>${esc(memberName(leader))} · ${esc(leader.title || 'Leader')}</span>`).join('') || '<span>No area leaders assigned</span>'}</div></div>`).join('');
-    const unassigned = leaders.filter((leader) => !(leader.managed_by || '').trim()).map((leader) => `<div class="group-member"><b>${esc(memberName(leader))}</b><small>${esc(leader.email)}</small><em>${esc(leader.title || 'Leader')}</em></div>`).join('');
-    return `<article class="group-card"><h4>${esc(group.name)}</h4><div class="group-count">${group.members.length} configured leader${group.members.length === 1 ? '' : 's'}</div><div class="group-members">${shiftCards}${unassigned || (!shiftCards ? '<span class="meta">No leaders configured</span>' : '')}</div></article>`;
+    const preview = shifts.length
+      ? shifts.slice(0, 2).map((shift) => `<span><b>Owner</b>${esc(memberName(shift))}</span>`).join('')
+      : '<span>No shift leader assigned</span>';
+    return `<button type="button" class="group-card" onclick="selectFamily('${esc(group.name)}')"><div class="group-card-top"><span>Group ${String(index + 1).padStart(2, '0')}</span><span class="group-open">Open roster →</span></div><h4>${esc(group.name)}</h4><div class="group-count">${group.members.length} configured members</div><div class="group-roster-preview">${preview}</div></button>`;
   }).join('');
 }
 
-function renderMembers() {
-  if (typeof familyMembers === 'undefined') return;
-  familyMembers.innerHTML = configuredMembers.length
-    ? configuredMembers.map((member) => `<span class="family"><b>${esc(memberName(member))}</b> · ${esc(member.email)} · ${esc(member.title || roleLabel(member.role))}${member.role === 'AREA_LEADER' ? ` · managed by ${esc(member.managed_by || 'not assigned')}` : ''} <button onclick="removeMember('${esc(member.email)}')">×</button></span>`).join('')
-    : '<span class="meta">No leaders configured for this group.</span>';
-  renderManagedByOptions();
-}
-
-function renderManagedByOptions() {
-  if (typeof managedBy === 'undefined') return;
-  const shifts = configuredMembers.filter((member) => member.role === 'SHIFT_LEADER');
-  managedBy.innerHTML = shifts.length ? shifts.map((member) => `<option value="${esc(member.email)}">${esc(memberName(member))} · ${esc(member.email)}</option>`).join('') : '<option value="">Add a Shift Leader first</option>';
-  if (typeof managedByField !== 'undefined') managedByField.classList.toggle('hidden', memberRole.value === 'SHIFT_LEADER');
-  if (typeof memberEmail !== 'undefined') {
-    memberEmail.value = '';
-    memberEmail.removeAttribute('readonly');
-    memberEmail.placeholder = memberRole.value === 'SHIFT_LEADER' ? 'Shift leader company email' : 'Leader company email';
+function renderFamilyDetail(name, members) {
+  const detail = document.getElementById('familyDetail');
+  if (!detail) return;
+  const shifts = members.filter((member) => member.role === 'SHIFT_LEADER');
+  const leaders = members.filter((member) => member.role !== 'SHIFT_LEADER');
+  if (!shifts.length) {
+    detail.innerHTML = `<div class="group-detail-head"><div><h3>${esc(name)}</h3><p>Member roster</p></div><span class="group-detail-badge">${members.length} members</span></div><div class="member-roster">${members.map((member) => `<div class="report-row"><div><b>${esc(memberName(member))}</b><small>${esc(member.email)}</small><em>${esc(member.title || roleLabel(member.role))}</em></div></div>`).join('')}</div>`;
+    detail.classList.remove('hidden');
+    return;
   }
+  const assigned = new Set();
+  const tree = shifts.map((shift) => {
+    const reports = leaders.filter((leader) => (leader.managed_by || '').toLowerCase() === shift.email.toLowerCase());
+    reports.forEach((leader) => assigned.add(leader.email.toLowerCase()));
+    return `<article class="owner-card"><div class="owner-card-head"><span class="owner-avatar">${esc(initials(memberName(shift)))}</span><div><h4>${esc(memberName(shift))}</h4><div class="meta">${esc(shift.email)}</div><span class="owner-title">${esc(shift.title || roleLabel(shift.role))}</span></div></div><div class="report-list">${reports.length ? reports.map((leader) => `<div class="report-row"><div><b>${esc(memberName(leader))}</b><small>${esc(leader.email)}</small><em>${esc(leader.title || roleLabel(leader.role))}</em></div></div>`).join('') : '<div class="unassigned-note">No leaders assigned to this owner.</div>'}</div></article>`;
+  }).join('');
+  const unassigned = leaders.filter((leader) => !assigned.has(leader.email.toLowerCase()) && !(leader.managed_by || '').trim());
+  detail.innerHTML = `<div class="group-detail-head"><div><h3>${esc(name)}</h3><p>Member roster and reporting ownership</p></div><span class="group-detail-badge">${members.length} members · ${shifts.length} owners</span></div><div class="group-tree">${tree || '<div class="unassigned-note">No shift leader configured for this group.</div>'}</div>${unassigned.length ? `<div class="unassigned-note">Unassigned leaders: ${unassigned.map((leader) => esc(memberName(leader))).join(', ')}</div>` : ''}`;
+  detail.classList.remove('hidden');
 }
 
-function loadMembers() {
-  if (typeof familyManage === 'undefined' || !familyManage.value) return;
-  api(`/api/families/${encodeURIComponent(familyManage.value)}/members`).then((members) => { configuredMembers = members; renderMembers(); }).catch(() => { configuredMembers = []; renderMembers(); });
-}
-
-function addFamily() {
-  if (!newFamily.value.trim()) return;
-  api('/api/families', { method: 'POST', body: JSON.stringify({ name: newFamily.value }) }).then(() => { newFamily.value = ''; load(); });
-}
-
-function removeFamily(name) {
-  api(`/api/families/${encodeURIComponent(name)}`, { method: 'DELETE' }).then(load);
-}
-
-function addMember() {
-  const email = memberEmail.value.trim().toLowerCase();
-  if (!familyManage.value || !email) return;
-  api(`/api/families/${encodeURIComponent(familyManage.value)}/members`, { method: 'POST', body: JSON.stringify({ email, display_name: memberProfile.dataset.displayName || '', role: memberRole.value, managed_by: managedBy.value }) })
-    .then(() => { memberEmail.value = ''; memberProfile.textContent = ''; memberProfile.dataset.displayName = ''; loadMembers(); })
-    .catch((error) => showToast(error.message || 'Cannot add leader', 'error'));
-}
-
-function removeMember(email) {
-  api(`/api/families/${encodeURIComponent(familyManage.value)}/members/${encodeURIComponent(email)}`, { method: 'DELETE' }).then(loadMembers);
-}
-
-if (typeof familyManage !== 'undefined') familyManage.onchange = loadMembers;
-if (typeof memberRole !== 'undefined') memberRole.onchange = renderManagedByOptions;
-
-async function lookupMemberProfile() {
-  const email = memberEmail.value.trim().toLowerCase();
-  if (!email || !email.includes('@')) return;
+async function selectFamily(name) {
+  selectedFamily = name;
+  const cached = familyMemberCache[name];
+  const detail = document.getElementById('familyDetail');
+  if (cached) {
+    renderFamilyDetail(name, cached);
+    detail?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (detail) {
+    detail.classList.remove('hidden');
+    detail.innerHTML = '<div class="unassigned-note">Loading group roster...</div>';
+  }
   try {
-    const profile = await api(`/api/directory/lookup?email=${encodeURIComponent(email)}`);
-    memberProfile.dataset.displayName = profile.display_name || email;
-    memberProfile.textContent = `${profile.display_name || email}${profile.title ? ` · ${profile.title}` : ''}`;
+    const members = await api(`/api/families/${encodeURIComponent(name)}/members`);
+    familyMemberCache[name] = members;
+    if (selectedFamily === name) renderFamilyDetail(name, members);
   } catch (error) {
-    memberProfile.dataset.displayName = '';
-    memberProfile.textContent = error.message || 'Profile not found';
+    if (detail) detail.innerHTML = `<div class="unassigned-note">${esc(error.message || 'Unable to load this group.')}</div>`;
   }
+  detail?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-if (typeof memberEmail !== 'undefined') memberEmail.addEventListener('blur', lookupMemberProfile);
+async function loadFamilyOverview() {
+  const overview = document.getElementById('familyOverview');
+  if (!overview) return;
+  const token = ++familyLoadToken;
+  const names = familyNames();
+  const status = document.getElementById('groupsStatus');
+  if (status) status.textContent = 'Loading groups';
+  overview.innerHTML = names.map(() => '<div class="group-card"><div class="group-card-top"><span>Loading</span></div><h4>Loading group...</h4><div class="group-count">Preparing member roster</div></div>').join('');
+  const groups = await Promise.all(names.map(async (name) => {
+    try {
+      const members = await api(`/api/families/${encodeURIComponent(name)}/members`);
+      familyMemberCache[name] = members;
+      return { name, members };
+    } catch (error) {
+      return { name, members: [] };
+    }
+  }));
+  if (token !== familyLoadToken) return;
+  renderGroupCards(groups);
+  if (status) status.textContent = `${groups.length} groups ready`;
+  if (selectedFamily && familyMemberCache[selectedFamily]) renderFamilyDetail(selectedFamily, familyMemberCache[selectedFamily]);
+}
