@@ -17,7 +17,7 @@ function applyState(session, tickets, familiesList) {
   state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
   state.families = familiesList;
-  userPill.textContent = `Account: ${state.displayName} · ${session.user}`;
+  userPill.textContent = state.displayName;
   if (typeof ownerEmail !== 'undefined') ownerEmail.value = session.user;
   daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
   daySelect.value = state.day;
