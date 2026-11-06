@@ -104,5 +104,6 @@ async function loadFamilyOverview() {
   if (token !== familyLoadToken) return;
   renderGroupCards(groups);
   if (status) status.textContent = `${groups.length} groups ready`;
+  if (!selectedFamily && groups.length) selectedFamily = groups[0].name;
   if (selectedFamily && familyMemberCache[selectedFamily]) renderFamilyDetail(selectedFamily, familyMemberCache[selectedFamily]);
 }
