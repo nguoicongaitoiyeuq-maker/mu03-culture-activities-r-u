@@ -11,12 +11,13 @@ function renderAll() {
 
 function applyState(session, tickets, familiesList) {
   state.user = session.user;
+  state.displayName = session.display_name || session.user;
   state.today = session.today;
   state.role = session.role || 'MEMBER';
   state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
   state.families = familiesList;
-  userPill.textContent = `Account: ${session.user}`;
+  userPill.textContent = `Account: ${state.displayName} · ${session.user}`;
   if (typeof ownerEmail !== 'undefined') ownerEmail.value = session.user;
   daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
   daySelect.value = state.day;

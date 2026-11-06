@@ -1,7 +1,7 @@
 let configuredMembers = [];
 
 function renderFamilies() {
-  family.innerHTML = '<option>ALL MU03</option>' + state.families.map((item) => `<option>${esc(item)}</option>`).join('');
+  family.innerHTML = state.families.map((item) => `<option>${esc(item)}</option>`).join('');
   families.innerHTML = state.families.map((item) => `<span class="family">${esc(item)} <button onclick="removeFamily('${esc(item)}')">×</button></span>`).join('');
   if (typeof familyManage === 'undefined') return;
   const previous = familyManage.value;
@@ -13,7 +13,7 @@ function renderFamilies() {
 function renderMembers() {
   if (typeof familyMembers === 'undefined') return;
   familyMembers.innerHTML = configuredMembers.length
-    ? configuredMembers.map((member) => `<span class="family">${esc(member.email)} · ${esc(member.role)} <button onclick="removeMember('${esc(member.email)}')">×</button></span>`).join('')
+    ? configuredMembers.map((member) => `<span class="family">${esc(member.display_name || member.email)} · ${esc(member.email)} · ${esc(member.role)} <button onclick="removeMember('${esc(member.email)}')">×</button></span>`).join('')
     : '<span class="meta">No members configured for this family.</span>';
 }
 
@@ -34,7 +34,7 @@ function removeFamily(name) {
 function addMember() {
   const email = memberEmail.value.trim().toLowerCase();
   if (!familyManage.value || !email) return;
-  api(`/api/families/${encodeURIComponent(familyManage.value)}/members`, { method: 'POST', body: JSON.stringify({ email, role: memberRole.value }) })
+  api(`/api/families/${encodeURIComponent(familyManage.value)}/members`, { method: 'POST', body: JSON.stringify({ email, display_name: memberProfile.dataset.displayName || '', role: memberRole.value }) })
     .then(() => { memberEmail.value = ''; loadMembers(); })
     .catch((error) => showToast(error.message || 'Cannot add member', 'error'));
 }
@@ -44,3 +44,18 @@ function removeMember(email) {
 }
 
 if (typeof familyManage !== 'undefined') familyManage.onchange = loadMembers;
+
+async function lookupMemberProfile() {
+  const email = memberEmail.value.trim().toLowerCase();
+  if (!email || !email.includes('@')) return;
+  try {
+    const profile = await api(`/api/directory/lookup?email=${encodeURIComponent(email)}`);
+    memberProfile.dataset.displayName = profile.display_name || email;
+    memberProfile.textContent = `Teams profile: ${profile.display_name || email}`;
+  } catch (error) {
+    memberProfile.dataset.displayName = '';
+    memberProfile.textContent = error.message || 'Profile not found';
+  }
+}
+
+if (typeof memberEmail !== 'undefined') memberEmail.addEventListener('blur', lookupMemberProfile);
