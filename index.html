@@ -8,6 +8,9 @@
 @media(max-width:700px){body{overflow-x:hidden}.hero{height:auto;min-height:156px}.hero-content{display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding:20px 16px}.hero h1{font-size:24px;line-height:1.15;max-width:100%;overflow-wrap:anywhere}.hero-logo{width:92px;height:48px}.user-pill{max-width:100%;font-size:12px;line-height:1.3;overflow-wrap:anywhere}.nav{display:flex;flex-wrap:nowrap;gap:6px;padding:8px 12px;overflow-x:auto;overflow-y:hidden;white-space:nowrap;-webkit-overflow-scrolling:touch}.nav-brand{flex:0 0 auto;margin-right:4px}.nav button{flex:0 0 auto;min-width:max-content;padding:9px 11px;font-size:12px}.main{width:100%;padding:16px 12px}.top{display:flex;flex-direction:column;align-items:stretch;gap:12px}.top .btn{width:100%;align-self:stretch}.summary-chart{width:100%;min-height:150px}.summary-chart-bars{display:grid;grid-template-columns:repeat(5,minmax(54px,1fr));gap:6px;overflow:visible}.summary-chart-bar{min-width:0}.summary-chart-bar span{font-size:9px;white-space:nowrap}.table-panel{width:100%;overflow:hidden}.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}.table-wrap table{min-width:760px}.leader-card{width:100%;overflow-wrap:anywhere}.leader-choice,.leader-actions{flex-wrap:wrap}.leader-actions .btn{min-width:0;flex:1 1 140px}.form-grid{width:100%}input,textarea,select{max-width:100%}.dashboard-carousel img{width:100%;height:auto;max-height:280px;object-fit:cover}}</style>
 <style>
 #families{display:none}
+.family-models-page{position:relative;overflow:hidden;background:linear-gradient(90deg,#101114e8,#10111488),url('/asset/8.jpg') center/cover fixed no-repeat;padding:28px 26px 58px;border-radius:18px;box-shadow:inset 0 0 0 1px #ffffff18}
+.family-models-page:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#07080922,#070809c7);pointer-events:none}
+.family-models-page>*{position:relative;z-index:1}
 .group-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;perspective:1200px}
 .group-card{position:relative;overflow:hidden;border:1px solid #efd5d8;border-radius:16px;background:linear-gradient(145deg,#fff,#fff7f7);padding:18px;box-shadow:0 10px 22px #7a1e2914,0 2px 0 #fff inset;transform:translateZ(0);transition:transform .25s ease,box-shadow .25s ease}
 .group-card:hover{transform:translateY(-5px) rotateX(1deg) rotateY(-1deg);box-shadow:0 18px 34px #7a1e2924,0 2px 0 #fff inset}
@@ -32,9 +35,9 @@
 .group-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 .group-card{min-height:190px;border:1px solid #efd5d8;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
 .group-card:focus-visible{outline:3px solid #ef233c66;outline-offset:3px}
-.group-card-logo{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:9px;object-fit:cover;box-shadow:0 4px 9px #7a1e2924}
+.group-card-logo{display:none}
 .group-card-top{display:flex;justify-content:space-between;align-items:center;color:#a30e1b;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
-.group-open{color:#667085;font-size:10px;letter-spacing:0;text-transform:none}
+.group-open{display:none}
 .group-card h4{font-size:22px;margin:24px 0 4px}
 .group-count{font-weight:700}
 .group-roster-preview{display:grid;gap:7px;margin-top:18px;padding-top:13px;border-top:1px solid #f0dfe1}
@@ -46,19 +49,19 @@
 .group-detail-head p{margin:5px 0 0;color:#ffe5e8;font-size:12px}
 .group-detail-head-actions{display:flex;align-items:center;gap:10px}
 .group-detail-title{display:flex;align-items:center;gap:12px}
-.group-detail-logo{width:40px;height:40px;border-radius:11px;object-fit:cover;box-shadow:0 5px 11px #3100084d}
+.group-detail-logo{display:none}
 .group-detail-badge{padding:8px 12px;border:1px solid #ffffff55;border-radius:999px;color:#fff;font-size:12px;font-weight:800;white-space:nowrap}
 .group-detail-head .detail-toggle{border-color:#ffffff66;background:#ffffff1c;color:#fff;box-shadow:none}
 .group-tree{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:22px}
 .owner-card{border:1px solid #edcbd0;border-radius:14px;padding:16px;background:linear-gradient(145deg,#fff,#fff8f8);box-shadow:0 7px 16px #7a1e2910}
 .owner-card-head{display:flex;gap:12px;align-items:flex-start;padding-bottom:13px;border-bottom:1px solid #f0dfe1}
-.owner-avatar{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#ffe1e5;color:#a30e1b;font-weight:900}
+.owner-avatar{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#e30613 url('/asset/10.jpg') center/cover no-repeat;color:#fff;font-weight:900;font-size:0;box-shadow:0 3px 8px #7a1e2930}
 .owner-card h4{margin:0;color:#17191d;font-size:15px}
 .owner-card .meta{margin-top:2px;overflow-wrap:anywhere}
 .owner-title{display:inline-block;margin-top:5px;color:#a30e1b;font-size:11px;font-weight:800}
 .report-list{display:grid;gap:9px;margin-top:14px}
 .report-row{display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:start;padding:9px 10px;border:1px solid #f0dfe1;border-radius:10px;background:#fff}
-.report-row:before{content:'';width:24px;height:24px;display:block;border-radius:8px;background:#e30613 url('/asset/10.jpg') center/cover no-repeat;box-shadow:0 2px 5px #7a1e2924}
+.report-row:before{content:'';width:30px;height:30px;display:block;border-radius:9px;background:#e30613 url('/asset/10.jpg') center/cover no-repeat;box-shadow:0 2px 5px #7a1e2924}
 .report-row b{display:block;font-size:12px;color:#252a31}
 .report-row small{display:block;margin-top:2px;color:#667085;overflow-wrap:anywhere}
 .report-row em{display:block;margin-top:3px;color:#7a1e29;font-size:10px;font-style:normal;font-weight:800}
@@ -248,12 +251,12 @@
 <div class="top">
 <div>
 <h2>Family Models</h2>
-<p>Group directory and reporting ownership</p>
 </div>
 </div>
+<div class="family-models-page">
 <div class="groups-shell">
 <div class="groups-toolbar">
-<div><h3>Groups</h3><p>Click a group to open the complete member tree and owner assignments.</p></div>
+<div><h3>Groups</h3></div>
 <div class="groups-toolbar-actions">
 <span id="groupsStatus" class="groups-status">Loading groups</span>
 <button id="toggleGroupsBtn" type="button" class="btn group-toggle" onclick="toggleGroups()" aria-expanded="true" title="Hide or show groups"><span aria-hidden="true">⌃</span><span>Hide groups</span></button>
@@ -261,6 +264,7 @@
 </div>
 <div id="familyOverview" class="group-grid"></div>
 <div id="familyDetail" class="group-detail hidden"></div>
+</div>
 </div>
 </section>
 </main>
