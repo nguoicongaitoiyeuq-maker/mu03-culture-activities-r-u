@@ -71,8 +71,26 @@
 @media(max-width:1000px){.group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.group-tree{grid-template-columns:1fr}.member-roster{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.groups-toolbar,.group-detail-head{display:block}.groups-toolbar-actions,.group-detail-head-actions{justify-content:space-between;margin-top:12px}.groups-status{margin-top:12px}.group-grid{grid-template-columns:1fr}.group-detail-badge{display:inline-block}.group-tree{padding:14px}.member-roster{grid-template-columns:1fr;padding:14px}}
 </style>
+<style>
+html{scroll-behavior:smooth}
+body{background:linear-gradient(180deg,#140206d9 0%,#3a080fbb 28%,#fff8f9f2 76%,#fff 100%),url('/asset/13.webp') center/cover fixed no-repeat;background-attachment:fixed}
+.hero{background:#210308 url('/asset/13.webp') center/cover no-repeat;box-shadow:0 18px 42px #24020845}
+.hero-video{opacity:.72;mix-blend-mode:screen;transition:opacity .6s ease,filter .6s ease}
+.nav{background:#fffffff0;backdrop-filter:blur(16px) saturate(1.15);-webkit-backdrop-filter:blur(16px) saturate(1.15);perspective:1100px;transform-style:preserve-3d;box-shadow:0 14px 34px #26050d1e,0 1px 0 #fff inset;transition:box-shadow .35s ease,background .35s ease}
+.nav:after{content:'';position:absolute;left:12%;right:12%;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,#c1121f,#ef233c,transparent);opacity:.5;pointer-events:none}
+.nav button{position:relative;transform:translateZ(0);transform-style:preserve-3d;transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s ease,background .28s ease,color .28s ease;will-change:transform}
+.nav button:before{content:'';position:absolute;inset:3px;border-radius:7px;border-top:1px solid #fff8;opacity:0;transform:translateZ(8px);transition:opacity .28s ease}
+.nav button:hover{transform:translateY(-3px) rotateX(7deg) rotateY(-2deg) translateZ(12px);box-shadow:0 12px 20px #7a1e2924}
+.nav button:hover:before,.nav button.active:before{opacity:1}
+.nav button.active{transform:translateY(-1px) translateZ(7px);box-shadow:0 8px 18px #c1121f20,inset 0 1px 0 #fff}
+.btn,.panel,.table-panel,.leader-card,.summary-chart,.dashboard-carousel,.groups-toolbar,.group-detail,.group-card{transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s ease,border-color .3s ease,background .3s ease}
+.btn:hover{transform:translateY(-2px) translateZ(0);box-shadow:0 12px 24px #7a1e2924}
+.panel:hover,.table-panel:hover,.summary-chart:hover,.dashboard-carousel:hover{box-shadow:0 20px 42px #7a1e2924}
+.family-models-page{background:linear-gradient(90deg,#090a0de6,#10111488),url('/asset/13.webp') center/cover fixed no-repeat}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
 </head>
-<body>
+<body class="app-body">
 <header class="hero">
 <video class="hero-video" autoplay muted loop playsinline preload="auto" src="/asset/snaptik.vn_7616226358024310033.mp4">
 </video>
@@ -94,7 +112,7 @@
 <button class="active" data-page="dashboard">Dashboard</button>
 <button data-page="create">Create Ticket</button>
 <button data-page="inbox">Leader Inbox</button>
-<button data-page="confirmation">Confirmation</button>
+<button id="cfmMenu" class="hidden" data-cfm-menu data-page="confirmation">Confirmation</button>
 <button data-page="settings">Family Models</button>
 <div class="nav-right">
 <select id="daySelect" class="date-select">
