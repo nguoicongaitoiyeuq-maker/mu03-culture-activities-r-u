@@ -20,6 +20,43 @@
 .group-member small{display:block;color:#667085;margin-top:3px}
 .group-member em{display:block;color:#a30e1b;font-style:normal;font-size:11px;font-weight:800;margin-top:5px}
 .reports{border-left:2px solid #efc7cb;margin-top:9px;padding-left:8px;display:grid;gap:4px;color:#7a1e29;font-size:11px}
+.groups-shell{display:grid;gap:22px}
+.groups-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px;border:1px solid #efd5d8;border-radius:16px;background:linear-gradient(120deg,#fff,#fff7f7);box-shadow:0 10px 24px #7a1e2910}
+.groups-toolbar h3{margin:0;color:#7a1e29;font-size:18px}
+.groups-toolbar p{margin:3px 0 0;color:#667085;font-size:12px}
+.groups-status{display:inline-flex;align-items:center;gap:7px;color:#667085;font-size:12px;white-space:nowrap}
+.groups-status:before{content:'';width:8px;height:8px;border-radius:50%;background:#24a36a;box-shadow:0 0 0 4px #24a36a1c}
+.group-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.group-card{min-height:190px;border:1px solid #efd5d8;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
+.group-card:focus-visible{outline:3px solid #ef233c66;outline-offset:3px}
+.group-card-top{display:flex;justify-content:space-between;align-items:center;color:#a30e1b;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.group-open{color:#667085;font-size:10px;letter-spacing:0;text-transform:none}
+.group-card h4{font-size:22px;margin:24px 0 4px}
+.group-count{font-weight:700}
+.group-roster-preview{display:grid;gap:7px;margin-top:18px;padding-top:13px;border-top:1px solid #f0dfe1}
+.group-roster-preview span{font-size:12px;color:#4b5563;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.group-roster-preview b{color:#7a1e29;margin-right:5px}
+.group-detail{border:1px solid #efd5d8;border-radius:18px;background:#fff;box-shadow:0 16px 36px #7a1e2918;overflow:hidden}
+.group-detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;padding:24px 26px;background:linear-gradient(120deg,#6f0b17,#c1121f 58%,#ef233c);color:#fff}
+.group-detail-head h3{margin:0;font-size:25px}
+.group-detail-head p{margin:5px 0 0;color:#ffe5e8;font-size:12px}
+.group-detail-badge{padding:8px 12px;border:1px solid #ffffff55;border-radius:999px;color:#fff;font-size:12px;font-weight:800;white-space:nowrap}
+.group-tree{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:22px}
+.owner-card{border:1px solid #edcbd0;border-radius:14px;padding:16px;background:linear-gradient(145deg,#fff,#fff8f8);box-shadow:0 7px 16px #7a1e2910}
+.owner-card-head{display:flex;gap:12px;align-items:flex-start;padding-bottom:13px;border-bottom:1px solid #f0dfe1}
+.owner-avatar{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#ffe1e5;color:#a30e1b;font-weight:900}
+.owner-card h4{margin:0;color:#17191d;font-size:15px}
+.owner-card .meta{margin-top:2px;overflow-wrap:anywhere}
+.owner-title{display:inline-block;margin-top:5px;color:#a30e1b;font-size:11px;font-weight:800}
+.report-list{display:grid;gap:9px;margin-top:14px}
+.report-row{display:grid;grid-template-columns:30px 1fr;gap:9px;align-items:start;padding:9px 10px;border:1px solid #f0dfe1;border-radius:10px;background:#fff}
+.report-row:before{content:'L';width:24px;height:24px;display:grid;place-items:center;border-radius:8px;background:#fff0f1;color:#c1121f;font-size:11px;font-weight:900}
+.report-row b{display:block;font-size:12px;color:#252a31}
+.report-row small{display:block;margin-top:2px;color:#667085;overflow-wrap:anywhere}
+.report-row em{display:block;margin-top:3px;color:#7a1e29;font-size:10px;font-style:normal;font-weight:800}
+.unassigned-note{padding:18px 22px;color:#667085;font-size:12px}
+@media(max-width:1000px){.group-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.group-tree{grid-template-columns:1fr}}
+@media(max-width:700px){.groups-toolbar,.group-detail-head{display:block}.groups-status{margin-top:12px}.group-grid{grid-template-columns:1fr}.group-detail-badge{display:inline-block;margin-top:14px}.group-tree{padding:14px}}
 </style>
 </head>
 <body>
@@ -201,49 +238,16 @@
 <div class="top">
 <div>
 <h2>Family Models</h2>
+<p>Group directory and reporting ownership</p>
 </div>
 </div>
-<div class="panel">
-<div id="families" class="family-list section-space">
+<div class="groups-shell">
+<div class="groups-toolbar">
+<div><h3>Groups</h3><p>Click a group to open the complete member tree and owner assignments.</p></div>
+<span id="groupsStatus" class="groups-status">Loading groups</span>
 </div>
-<div id="familyOverview" class="group-grid section-space">
-</div>
-<div class="form-grid section-space">
-<div class="field">
-<label>Family Model</label>
-<select id="familyManage"></select>
-</div>
-<div class="field">
-<label>Leader email</label>
-<input id="memberEmail" type="email">
-<div id="memberProfile" class="meta section-space"></div>
-</div>
-<div class="field">
-<label>Title leader</label>
-<select id="memberRole">
-<option value="AREA_LEADER">Leader</option>
-<option value="SHIFT_LEADER">Shift leader</option>
-</select>
-</div>
-<div class="field" id="managedByField">
-<label>Shift leader email</label>
-<input id="managedBy" type="email">
-<div id="managedByProfile" class="meta section-space"></div>
-</div>
-</div>
-<div id="familyMembers" class="family-list section-space"></div>
-<div class="leader-actions">
-<button class="btn primary" onclick="addMember()">ADD LEADER</button>
-</div>
-<div class="form-grid section-space">
-<div class="field">
-<label>New Family Model</label>
-<input id="newFamily">
-</div>
-</div>
-<div class="leader-actions">
-<button class="btn primary" onclick="addFamily()">ADD FAMILY MODEL</button>
-</div>
+<div id="familyOverview" class="group-grid"></div>
+<div id="familyDetail" class="group-detail hidden"></div>
 </div>
 </section>
 </main>

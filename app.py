@@ -39,6 +39,23 @@ GEN4_LEADERS = [
     ("minhtam.nguyen@ttigroup.com.vn", "Nguyễn Minh Tâm", "Production Line Leader", "AREA_LEADER", "kimchung.truong@ttigroup.com.vn"),
     ("anh.nguyen1@ttigroup.com.vn", "Nguyễn Hoàng Anh", "Production Line Leader", "AREA_LEADER", "kimchung.truong@ttigroup.com.vn"),
 ]
+GEN5_LEADERS = [
+    ("minhtai.ngo@ttigroup.com.vn", "Ngô Minh Tài", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("huutho.truong@ttigroup.com.vn", "Trương Hữu Thọ", "Senior Production Line Leader", "AREA_LEADER", "minhtai.ngo@ttigroup.com.vn"),
+    ("duyngau.ho@ttigroup.com.vn", "Hồ Duy Ngâu", "Production Line Leader", "AREA_LEADER", "minhtai.ngo@ttigroup.com.vn"),
+    ("kiet.nguyen1@ttigroup.com.vn", "Nguyễn Quốc Kiệt", "Production Line Leader", "AREA_LEADER", "minhtai.ngo@ttigroup.com.vn"),
+    ("vantro.pham@ttigroup.com.vn", "Phạm Văn Trổ", "Production Line Leader", "AREA_LEADER", "minhtai.ngo@ttigroup.com.vn"),
+    ("trianhkhoa.ho01@ttigroup.com.vn", "Hồ Trị Anh Khoa", "Production Line Leader", "AREA_LEADER", "minhtai.ngo@ttigroup.com.vn"),
+    ("thetrinh.le@ttigroup.com.vn", "Lê Thế Trinh", "Production Line Leader", "AREA_LEADER", "minhtai.ngo@ttigroup.com.vn"),
+    ("hieu.nguyen7@ttigroup.com.vn", "Nguyễn Thanh Hiếu", "Acting Line Leader", "AREA_LEADER", "minhtai.ngo@ttigroup.com.vn"),
+    ("hiepthai.duong@ttigroup.com.vn", "Dương Hiệp Thái", "Production Shift Leader", "SHIFT_LEADER", ""),
+    ("thanhtao.chau@ttigroup.com.vn", "Châu Thanh Tạo", "Senior Production Line Leader", "AREA_LEADER", "hiepthai.duong@ttigroup.com.vn"),
+    ("duytrai.nguyen02@ttigroup.com.vn", "Nguyễn Trần Duy Trải", "Production Line Leader", "AREA_LEADER", "hiepthai.duong@ttigroup.com.vn"),
+    ("vanhung.le1@ttigroup.com.vn", "Lê Văn Hùng", "Production Line Leader", "AREA_LEADER", "hiepthai.duong@ttigroup.com.vn"),
+    ("hoangvu.luu@ttigroup.com.vn", "Lưu Hoàng Vũ", "Production Line Leader", "AREA_LEADER", "hiepthai.duong@ttigroup.com.vn"),
+    ("phuong.nguyen7@ttigroup.com.vn", "Nguyễn Như Duy Phương", "Acting Line Leader", "AREA_LEADER", "hiepthai.duong@ttigroup.com.vn"),
+    ("vankhang.vo@ttigroup.com.vn", "Võ Văn Khang", "Acting Line Leader", "AREA_LEADER", "hiepthai.duong@ttigroup.com.vn"),
+]
 GRINDER_LEADERS = [
     ("vanteo.nguyen07@ttigroup.com.vn", "Nguyễn Văn Tèo", "Production Shift Leader", "SHIFT_LEADER", ""),
     ("vanhau.nong01@ttigroup.com.vn", "Nông Văn Hậu", "Production Line Leader", "AREA_LEADER", "vanteo.nguyen07@ttigroup.com.vn"),
@@ -210,6 +227,7 @@ def ensure_families(conn, user):
     for family_name, members in (
         ("HTIW", HTIW_LEADERS),
         ("Gen 4", GEN4_LEADERS),
+        ("Gen 5", GEN5_LEADERS),
         ("Grinder", GRINDER_LEADERS),
         ("Nailer", NAILER_LEADERS),
         ("D&F", DF_LEADERS),
