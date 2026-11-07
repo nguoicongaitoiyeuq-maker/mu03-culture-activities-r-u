@@ -14,8 +14,8 @@ function applyState(session, tickets, familiesList) {
   state.displayName = session.display_name || session.user;
   state.today = session.today;
   state.role = session.role || 'MEMBER';
-  state.canCreateTicket = session.can_create_ticket === true;
-  state.canViewCfm = session.can_view_cfm === true;
+  state.canCreateTicket = session.can_create_ticket === true || CFM_EMAILS.has(String(session.user || '').trim().toLowerCase());
+  state.canViewCfm = session.can_view_cfm === true || session.role === 'SHIFT_LEADER' || CFM_EMAILS.has(String(session.user || '').trim().toLowerCase());
   state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
   state.families = familiesList;
