@@ -50,11 +50,20 @@ function bindLeaderMedia() {
   });
 }
 
-function openTicket(id) {
+async function openTicket(id) {
   expandedTickets[id] = true;
   viewedTickets[id] = true;
   renderAll();
   document.getElementById(`ticket-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const ticket = state.tickets.find((item) => item.id === id);
+  if (ticket?.can_review && !ticket.reviewed_at) {
+    try {
+      await api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ reviewed: true }) });
+      await load();
+    } catch (error) {
+      showToast(error.message || 'Không thể ghi nhận việc xem ticket', 'error');
+    }
+  }
 }
 
 function showHaveLine(id) {
@@ -96,10 +105,10 @@ function renderInbox() {
   inboxList.innerHTML = items.length ? items.map((ticket) => {
     const expanded = Boolean(expandedTickets[ticket.id] || viewedTickets[ticket.id]);
     const canRead = Boolean(ticket.can_manage) && ticket.status === 'WAITING FOR LEADER READ';
-    const canConfirm = Boolean(ticket.can_confirm) && ticket.status === 'READ' && Boolean(ticket.read_at) && Boolean(viewedTickets[ticket.id]);
+    const canConfirm = Boolean(ticket.can_confirm) && ticket.status === 'READ' && Boolean(ticket.read_at) && Boolean(ticket.reviewed_at) && Boolean(viewedTickets[ticket.id]);
     const canManage = Boolean(ticket.can_manage) && ['SHIFT LEADER CONFIRMED', 'READ', 'WAITING FOR LINE SHARING'].includes(ticket.status);
     const waitingForAssignedLeader = ticket.status === 'WAITING FOR LEADER READ' && !canRead && !canConfirm;
-    const reviewRequired = Boolean(ticket.can_confirm) && ticket.status === 'READ' && !viewedTickets[ticket.id];
+    const reviewRequired = Boolean(ticket.can_review) && ticket.status === 'READ' && !ticket.reviewed_at;
     const actions = canRead
       ? `<div class="workflow-step"><span class="step-label">Step 1 · Xác nhận đã đọc</span><label class="workflow-ack"><input id="read-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="readTicket('${ticket.id}')">ĐÁNH DẤU ĐÃ ĐỌC</button></div></div>`
       : canConfirm
