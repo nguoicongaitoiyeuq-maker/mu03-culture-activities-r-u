@@ -255,6 +255,36 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 @media(max-width:700px){#groupCharts{grid-template-columns:1fr;gap:14px}.group-chart-card{padding:17px 12px 12px}.group-chart-stage{gap:4px;padding-left:2px;padding-right:2px}.group-chart-column{min-width:27px}.group-chart-column b{font-size:8px}.group-chart-column i{width:min(28px,78%)}}
 @media(prefers-reduced-motion:reduce){.group-chart-card:before,.group-chart-column i{animation:none!important}}
 </style>
+<style id="chart-and-background-polish">
+#dashboard .group-chart-card{background:#fffdfd;color:#2b1218;border-color:#ead5d9;box-shadow:0 18px 42px #0005,0 1px 0 #fff inset;transform:translateZ(8px)}
+#dashboard .group-chart-card:hover{border-color:#d95868;box-shadow:0 25px 48px #0007,0 0 22px #ef233c26;transform:translateY(-5px) translateZ(18px)}
+#dashboard .group-chart-card:before{background:linear-gradient(120deg,transparent 22%,#ef233c0b 42%,transparent 62%)}
+#dashboard .group-chart-head h3{color:#711322;text-shadow:none}
+#dashboard .group-chart-head strong{color:#b11228;text-shadow:none}
+#dashboard .group-chart-stage{border-bottom-color:#d9c4c8;background:linear-gradient(180deg,#fff,#fbf5f6)}
+#dashboard .group-chart-stage:before{background:repeating-linear-gradient(to bottom,#eadfe1 0 1px,transparent 1px 42px)}
+#dashboard .group-chart-column b{color:#5d4750}
+#dashboard .group-chart-value{color:#741426;text-shadow:none}
+#dashboard .group-chart-column:not(.has-value) i{background:#d9c7cb}
+#dashboard .table-panel{background:#fffdfd;color:#24161a;border-color:#ead5d9;box-shadow:0 20px 44px #0005,0 1px 0 #fff inset;transform:translateZ(8px)}
+#dashboard .table-panel:hover{box-shadow:0 27px 54px #0007,0 0 22px #ef233c22;transform:translateY(-5px) translateZ(18px)}
+#dashboard .table-panel .panel-title{margin:-6px -6px 18px;padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,#6e0b1b,#c1122b 58%,#8b0b1a);box-shadow:0 10px 22px #5a081533,inset 0 1px 0 #ffffff44;position:relative;overflow:hidden}
+#dashboard .table-panel .panel-title:after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 25%,#ffffff1c 45%,transparent 65%);transform:translateX(-120%);animation:trackingSheen 6s ease-in-out infinite;pointer-events:none}
+#dashboard .table-panel .panel-title h3,#dashboard .table-panel .panel-title .meta{position:relative;z-index:1;color:#fff}
+#dashboard .table-panel table{color:#3a252a}
+#dashboard .table-panel th{background:#fff0f2;color:#781426;border-bottom-color:#e7cbd0}
+#dashboard .table-panel td{border-bottom-color:#eedfe2}
+#dashboard .table-panel tbody tr:hover td{background:#fff4f5}
+#dashboard .table-panel .empty{color:#8a6c74}
+#create,#inbox,#confirmation,.family-models-page{background-size:auto 125%;background-repeat:no-repeat;animation:menuBgDrift 18s ease-in-out infinite alternate}
+#inbox{background-size:auto 130%;animation-duration:21s}
+#confirmation{background-size:auto 130%;animation-duration:24s}
+.family-models-page{animation-duration:20s}
+@keyframes menuBgDrift{0%{background-position:48% 18%}100%{background-position:56% 42%}}
+@keyframes trackingSheen{0%,25%{transform:translateX(-120%)}58%,100%{transform:translateX(120%)}}
+@media(max-width:700px){#dashboard .table-panel .panel-title{margin:-3px -3px 16px;padding:12px}.group-chart-card{transform:none!important}#create,#inbox,#confirmation,.family-models-page{animation:none;background-size:auto 115%}}
+@media(prefers-reduced-motion:reduce){#dashboard .table-panel .panel-title:after,#create,#inbox,#confirmation,.family-models-page{animation:none!important}}
+</style>
 </head>
 <body class="app-body">
 <header class="hero">
