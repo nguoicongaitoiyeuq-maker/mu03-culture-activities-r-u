@@ -74,6 +74,12 @@ function showHaveLine(id) {
   }
 }
 
+function hasActiveLineDraft() {
+  const openPanel = document.querySelector('#inbox .leader-actions:not(.hidden)');
+  const hasMedia = Object.values(leaderMedia).some((items) => Array.isArray(items) && items.length);
+  return Boolean(openPanel || hasMedia);
+}
+
 function workflowButtons(id) {
   return [...document.querySelectorAll('button[data-workflow-ticket]')].filter((button) => button.dataset.workflowTicket === id);
 }
@@ -110,7 +116,7 @@ function renderInbox() {
     const waitingForAssignedLeader = ticket.status === 'WAITING FOR LEADER READ' && !canRead && !canConfirm;
     const reviewRequired = Boolean(ticket.can_review) && ticket.status === 'READ' && !ticket.reviewed_at;
     const actions = canRead
-      ? `<div class="workflow-step"><span class="step-label">Step 1 · Xác nhận đã đọc</span><label class="workflow-ack"><input id="read-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="readTicket('${ticket.id}')">ĐÁNH DẤU ĐÃ ĐỌC</button></div></div>`
+      ? `<div class="workflow-step"><span class="step-label">Step 1 · Xác nhận đã đọc</span><label class="workflow-ack"><input id="read-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="readTicket('${ticket.id}')">Next</button></div></div>`
       : canConfirm
         ? `<div class="workflow-step"><span class="step-label">Step 2 · Xác nhận ticket</span><label class="workflow-ack"><input id="confirm-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="confirmShift('${ticket.id}')">XÁC NHẬN &amp; TIẾP TỤC</button><button class="btn danger-outline" data-workflow-ticket="${esc(ticket.id)}" onclick="rejectShift('${ticket.id}')">TỪ CHỐI</button></div></div>`
       : canManage
@@ -128,7 +134,7 @@ function renderConfirm() {
 
 setInterval(() => {
   const inboxPage = document.getElementById('inbox');
-  if (typeof load === 'function' && inboxPage && !inboxPage.classList.contains('hidden') && !Object.values(workflowSubmitting).some(Boolean)) {
+  if (typeof load === 'function' && inboxPage && !inboxPage.classList.contains('hidden') && !Object.values(workflowSubmitting).some(Boolean) && !hasActiveLineDraft()) {
     load().catch(() => {});
   }
 }, 10000);
