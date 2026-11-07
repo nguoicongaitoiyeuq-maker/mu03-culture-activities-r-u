@@ -6,11 +6,13 @@ import sqlite3
 import threading
 from pathlib import Path
 from urllib.request import Request as UrlRequest, urlopen
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 
 ROOT = Path(__file__).parent
+BANGKOK_TZ = ZoneInfo("Asia/Bangkok")
 DB_PATH = Path(os.getenv("MU03_DATA_PATH", str(ROOT / "mu03_ru.sqlite3")))
 DEFAULT_FAMILIES = ["Gen 4", "Gen 5", "HTIW", "Grinder", "D&F", "Nailer", "Sub Line", "ALL MU03"]
 DEFAULT_LEADER = "Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)"
@@ -174,6 +176,7 @@ def db():
                 add_column(conn, "tickets", "target_family", "TEXT NOT NULL DEFAULT ''")
                 add_column(conn, "tickets", "reviewed_by", "TEXT NOT NULL DEFAULT ''")
                 add_column(conn, "tickets", "reviewed_at", "TEXT")
+                add_column(conn, "tickets", "work_shift", "TEXT NOT NULL DEFAULT ''")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_owner_day ON tickets(owner, day)")
                 conn.execute("""CREATE TABLE IF NOT EXISTS families (
                     owner TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -208,6 +211,10 @@ def user_email(request: Request):
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
+
+
+def business_today():
+    return datetime.now(BANGKOK_TZ).date().isoformat()
 
 
 def directory_lookup(request, email):
@@ -320,7 +327,7 @@ def ticket_json(row, conn=None, user=None):
     item = dict(row)
     item["media"] = json.loads(item.pop("media_json") or "[]")
     item["recipients"] = json.loads(item.pop("recipient_emails", "[]") or "[]")
-    item["can_update_today"] = item.get("day") == datetime.now().date().isoformat()
+    item["can_update_today"] = item.get("day") == business_today()
     if not str(item.get("leader") or "").strip() or item["leader"] == "Leader Inbox":
         item["leader"] = item.get("area_leader") or DEFAULT_LEADER
     if conn and user:
@@ -346,11 +353,11 @@ def ticket_json(row, conn=None, user=None):
             is_shift = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
             is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
         item["can_review"] = False
-        item["can_confirm"] = is_target and is_shift and str(item.get("reviewed_by") or "").lower() == user.lower()
+        item["can_confirm"] = is_target and is_shift and item["status"] == "READ" and bool(item.get("read_at"))
         item["can_manage"] = is_target and is_area
         if item["family"] == "ALL MU03" and target_email and target_row and target_row["role"] == "AREA_LEADER":
             item["can_review"] = item["status"] == "READ" and bool(item.get("read_at")) and bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
-            item["can_confirm"] = item["can_review"] and str(item.get("reviewed_by") or "").lower() == user.lower()
+            item["can_confirm"] = item["can_review"]
             item["can_manage"] = is_target
         elif is_target and is_shift:
             item["can_review"] = item["status"] == "READ" and bool(item.get("read_at"))
@@ -412,7 +419,7 @@ def session(request: Request):
     )
     conn.close()
     profile = directory_lookup(request, user)
-    return {"user": user, "display_name": profile["display_name"], "today": datetime.now().date().isoformat(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
+    return {"user": user, "display_name": profile["display_name"], "today": business_today(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
 
 
 @app.get("/api/directory/lookup")
@@ -479,8 +486,8 @@ async def create_ticket(request: Request):
     results = []
     for target in targets:
         target_email = target["email"].strip().lower() if target else ""
-        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": datetime.now().date().isoformat(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target["managed_by"].strip().lower() if target and target["role"] == "AREA_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email, "target_family": target["family_name"] if target and target["role"] == "AREA_LEADER" else ""}
-        conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email,target_family) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email,:target_family)""", item)
+        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": business_today(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target["managed_by"].strip().lower() if target and target["role"] == "AREA_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email, "target_family": target["family_name"] if target and target["role"] == "AREA_LEADER" else "", "work_shift": ""}
+        conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email,target_family,work_shift) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email,:target_family,:work_shift)""", item)
         row = conn.execute("SELECT * FROM tickets WHERE id=?", (item["id"],)).fetchone()
         results.append(ticket_json(row, conn, user))
     conn.commit()
@@ -516,9 +523,12 @@ async def update_ticket(ticket_id: str, request: Request):
     if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and not current.get("can_manage"):
         conn.close()
         raise HTTPException(403, "Only the area leader can manage this ticket")
-    if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and row["day"] != datetime.now().date().isoformat():
+    if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and row["day"] != business_today():
         conn.close()
         raise HTTPException(409, "Only tickets from today can be updated")
+    if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and str(payload.get("work_shift", "")).strip().lower() not in ("day", "night"):
+        conn.close()
+        raise HTTPException(400, "Select Day or Night shift")
     if status == "LINE SHARING COMPLETED":
         if not str(payload.get("line_id", "")).strip():
             conn.close()
@@ -529,7 +539,7 @@ async def update_ticket(ticket_id: str, request: Request):
     if status == "CLOSED" and not current.get("can_confirm"):
         conn.close()
         raise HTTPException(403, "Only the assigned shift leader can close this ticket")
-    fields = {key: payload[key] for key in ("status", "line_id", "note") if key in payload}
+    fields = {key: payload[key] for key in ("status", "line_id", "note", "work_shift") if key in payload}
     if payload.get("reviewed") is True:
         fields["reviewed_by"] = user
         fields["reviewed_at"] = now_iso()
