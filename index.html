@@ -328,8 +328,12 @@ body{background:linear-gradient(180deg,#fff,#fff5f5 55%,#fff)}
 #create .leader-actions .btn:hover{transform:translateY(-3px);box-shadow:0 14px 28px #7a1e2930}
 @keyframes ticketPanelIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:700px){#create{background-size:auto,165% auto;background-position:center,center 28%;padding:22px 14px 42px}}
+#inbox{position:relative;overflow:hidden;background:linear-gradient(90deg,#180207e8,#650b1590 58%,#09090970),url('/asset/15.png') center/cover fixed no-repeat;background-position:center 38%;padding:28px 26px 58px;border-radius:18px;box-shadow:inset 0 0 0 1px #ffffff18}
+#inbox:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0708091c,#070809b8);pointer-events:none}
+#inbox>*{position:relative;z-index:1}
 #inbox .top{align-items:center}
-#inboxCount{padding:7px 11px;background:#fff0d1;color:#8a5a00;border:1px solid #f0d08d}
+#inbox .top h2{color:#fff;text-shadow:0 4px 16px #0008}
+#inboxCount{padding:7px 11px;background:#ffffffe8;color:#8a1b27;border:1px solid #ffffff}
 #inboxList{gap:16px}
 #inbox .leader-card{padding:0;overflow:hidden;border-left:4px solid var(--red);border-radius:16px;background:#fffffff5;box-shadow:0 12px 30px #7a1e2915}
 #inbox .leader-card:hover{transform:translateY(-2px);box-shadow:0 20px 38px #7a1e2924}
