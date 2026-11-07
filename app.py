@@ -353,11 +353,12 @@ def ticket_json(row, conn=None, user=None):
             is_shift = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
             is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
         item["can_review"] = False
-        item["can_confirm"] = is_target and is_shift and item["status"] == "READ" and bool(item.get("read_at")) and str(item.get("reviewed_by") or "").lower() == user.lower()
+        reviewed_after_read = bool(item.get("reviewed_by")) and bool(item.get("reviewed_at")) and bool(item.get("read_at")) and item["reviewed_at"] >= item["read_at"]
+        item["can_confirm"] = is_target and is_shift and item["status"] == "READ" and reviewed_after_read and str(item.get("reviewed_by") or "").lower() == user.lower()
         item["can_manage"] = is_target and is_area
         if item["family"] == "ALL MU03" and target_email and target_row and target_row["role"] == "AREA_LEADER":
             item["can_review"] = item["status"] == "READ" and bool(item.get("read_at")) and bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
-            item["can_confirm"] = item["can_review"] and str(item.get("reviewed_by") or "").lower() == user.lower()
+            item["can_confirm"] = item["can_review"] and reviewed_after_read and str(item.get("reviewed_by") or "").lower() == user.lower()
             item["can_manage"] = is_target
         elif is_target and is_shift:
             item["can_review"] = item["status"] == "READ" and bool(item.get("read_at"))
@@ -550,6 +551,8 @@ async def update_ticket(ticket_id: str, request: Request):
         fields["media_json"] = json.dumps(payload["media"])
     if status == "READ":
         fields["read_at"] = now_iso()
+        fields["reviewed_by"] = ""
+        fields["reviewed_at"] = None
     if status == "CLOSED":
         fields["closed_at"] = now_iso()
     if fields:
