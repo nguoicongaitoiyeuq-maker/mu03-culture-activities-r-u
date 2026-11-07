@@ -22,10 +22,27 @@ function applyState(session, tickets, familiesList) {
   userPill.textContent = state.displayName;
   document.querySelectorAll('[data-page="create"], [data-new-ticket]').forEach((element) => element.classList.toggle('hidden', !state.canCreateTicket));
   document.querySelectorAll('[data-cfm-menu]').forEach((element) => element.classList.toggle('hidden', !state.canViewCfm));
-  if (typeof ownerEmail !== 'undefined') ownerEmail.value = session.user;
+  renderFamilyOptions();
+  setAccountEmail(session.user);
   daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
   daySelect.value = state.day;
   renderAll();
+}
+
+function renderFamilyOptions() {
+  const select = document.getElementById('family');
+  if (!select) return;
+  const current = select.value;
+  const names = state.families.filter((name) => name !== 'ALL MU03');
+  select.innerHTML = '<option value="" disabled>Select a family model</option>' + names
+    .map((name) => `<option value="${esc(name)}">${esc(name)}</option>`)
+    .join('');
+  select.value = names.includes(current) ? current : '';
+}
+
+function setAccountEmail(email) {
+  const input = document.getElementById('ownerEmail');
+  if (input) input.value = String(email || '').trim().toLowerCase();
 }
 
 let bootstrapUsed = false;
@@ -83,7 +100,7 @@ async function createTicket() {
 function clearForm() {
   title.value = '';
   content.value = '';
-  if (typeof ownerEmail !== 'undefined') ownerEmail.value = state.user;
+  setAccountEmail(state.user);
   state.media = [];
   mediaPreview.innerHTML = '';
 }
