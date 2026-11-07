@@ -232,6 +232,28 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 @media(max-width:700px){.hero{animation:none}.hero-logo{width:92px;height:48px}.nav{justify-content:flex-start;padding-left:12px}.nav button:before{left:12%;right:12%}#dashboard{min-height:520px;animation:none}#dashboard #summaryStrip,#dashboard .table-panel{animation:none}}
 @media(prefers-reduced-motion:reduce){.hero,.hero:before,#dashboard,#dashboard #summaryStrip,#dashboard .table-panel,#create:after,#inbox:after,#confirmation:after,.family-models-page:after{animation:none!important}}
 </style>
+<style id="group-charts">
+#groupCharts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:0 0 22px;perspective:1200px}
+.group-chart-card{position:relative;min-width:0;padding:20px 20px 14px;border:1px solid #ffffff2d;border-radius:18px;background:linear-gradient(145deg,#ffffff16,#ffffff08);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);box-shadow:0 18px 42px #0007,inset 0 1px 0 #fff2;transform:translateZ(8px);overflow:hidden;transition:transform .35s ease,box-shadow .35s ease,border-color .35s ease}
+.group-chart-card:before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 22%,#ffffff0f 42%,transparent 62%);transform:translateX(-120%);animation:chartSheen 8s ease-in-out infinite;pointer-events:none}
+.group-chart-card:hover{transform:translateY(-5px) translateZ(20px);border-color:#ff6b7d66;box-shadow:0 26px 54px #0009,0 0 24px #ef233c22,inset 0 1px 0 #fff3}
+.group-chart-head{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.group-chart-head h3{margin:0;color:#fff;font-size:16px;letter-spacing:.1em;text-transform:uppercase}
+.group-chart-head strong{color:#fff;font-size:24px;text-shadow:0 0 16px #ef233caa;font-variant-numeric:tabular-nums}
+.group-chart-stage{position:relative;z-index:1;display:flex;align-items:flex-end;gap:10px;min-height:190px;padding:18px 8px 0;border-bottom:1px solid #ffffff45;background:linear-gradient(180deg,transparent 0%,#09030722 100%)}
+.group-chart-stage:before{content:'';position:absolute;inset:18px 8px 28px;background:repeating-linear-gradient(to bottom,#ffffff15 0 1px,transparent 1px 42px);pointer-events:none}
+.group-chart-column{position:relative;z-index:1;display:flex;flex:1;min-width:32px;height:170px;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px}
+.group-chart-column i{display:block;width:min(34px,72%);min-height:3px;border-radius:7px 7px 2px 2px;background:linear-gradient(180deg,#ff9fa9 0%,#ef233c 48%,#8e0919 100%);box-shadow:0 0 15px #ef233c77,0 2px 0 #fff5 inset;animation:chartGrow .65s cubic-bezier(.2,.8,.2,1) both;transform-origin:bottom}
+.group-chart-column:not(.has-value) i{background:#ffffff22;box-shadow:none}
+.group-chart-column:hover i{filter:brightness(1.35);box-shadow:0 0 22px #ff6274cc,0 2px 0 #fff8 inset}
+.group-chart-value{height:14px;color:#fff;font-size:11px;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 1px 5px #000}
+.group-chart-column b{display:block;width:100%;min-height:25px;color:#ffcbd0;font-size:9px;font-weight:800;line-height:1.1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.group-chart-column:nth-child(2) i{animation-delay:.04s}.group-chart-column:nth-child(3) i{animation-delay:.08s}.group-chart-column:nth-child(4) i{animation-delay:.12s}.group-chart-column:nth-child(5) i{animation-delay:.16s}.group-chart-column:nth-child(6) i{animation-delay:.2s}.group-chart-column:nth-child(7) i{animation-delay:.24s}.group-chart-column:nth-child(8) i{animation-delay:.28s}
+@keyframes chartGrow{from{transform:scaleY(0);opacity:.25}to{transform:scaleY(1);opacity:1}}
+@keyframes chartSheen{0%,32%{transform:translateX(-120%)}58%,100%{transform:translateX(120%)}}
+@media(max-width:700px){#groupCharts{grid-template-columns:1fr;gap:14px}.group-chart-card{padding:17px 12px 12px}.group-chart-stage{gap:4px;padding-left:2px;padding-right:2px}.group-chart-column{min-width:27px}.group-chart-column b{font-size:8px}.group-chart-column i{width:min(28px,78%)}}
+@media(prefers-reduced-motion:reduce){.group-chart-card:before,.group-chart-column i{animation:none!important}}
+</style>
 </head>
 <body class="app-body">
 <header class="hero">
@@ -308,6 +330,24 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 </div>
 </div>
 </div>
+<section id="groupCharts" class="group-chart-grid" aria-label="Ticket status by group">
+<article class="group-chart-card" data-chart="sent">
+<div class="group-chart-head"><h3>Sent</h3><strong>0</strong></div>
+<div class="group-chart-stage" aria-label="Sent tickets by group"></div>
+</article>
+<article class="group-chart-card" data-chart="pending">
+<div class="group-chart-head"><h3>Pending</h3><strong>0</strong></div>
+<div class="group-chart-stage" aria-label="Pending tickets by group"></div>
+</article>
+<article class="group-chart-card" data-chart="cfm">
+<div class="group-chart-head"><h3>CFM</h3><strong>0</strong></div>
+<div class="group-chart-stage" aria-label="Confirmed tickets by group"></div>
+</article>
+<article class="group-chart-card" data-chart="closed">
+<div class="group-chart-head"><h3>Closed</h3><strong>0</strong></div>
+<div class="group-chart-stage" aria-label="Closed tickets by group"></div>
+</article>
+</section>
 <div class="dashboard-carousel">
 <div id="dashboardTrack" class="dashboard-track">
 <img src="/asset/4.webp" alt="Production image 4">
