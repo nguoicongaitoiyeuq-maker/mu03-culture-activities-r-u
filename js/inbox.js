@@ -37,11 +37,22 @@ document.addEventListener('keydown', (event) => { if (event.key === 'Escape') cl
 function bindLeaderMedia() {
   document.querySelectorAll('.leader-media-input').forEach((input) => input.onchange = (event) => {
     const id = input.dataset.id;
+    const today = state.today || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
+    const selectedFiles = [...event.target.files].slice(0, 6);
+    const invalidFile = selectedFiles.find((file) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(file.lastModified)) !== today);
+    if (invalidFile) {
+      event.target.value = '';
+      leaderMedia[id] = [];
+      const preview = document.getElementById(`leader-preview-${id}`);
+      if (preview) preview.innerHTML = '';
+      showToast('Chỉ được chọn ảnh hoặc video của ngày hiện tại.', 'error');
+      return;
+    }
     leaderMedia[id] = [];
-    [...event.target.files].slice(0, 6).forEach((file) => {
+    selectedFiles.forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
-        leaderMedia[id].push({ name: file.name, type: file.type, data: reader.result });
+        leaderMedia[id].push({ name: file.name, type: file.type, data: reader.result, uploaded_on: today });
         const preview = document.getElementById(`leader-preview-${id}`);
         if (preview) preview.innerHTML = leaderMedia[id].map((media) => media.type.startsWith('video') ? `<video controls src="${media.data}"></video>` : `<img src="${media.data}">`).join('');
       };
@@ -55,15 +66,6 @@ async function openTicket(id) {
   viewedTickets[id] = true;
   renderAll();
   document.getElementById(`ticket-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  const ticket = state.tickets.find((item) => item.id === id);
-  if (ticket?.can_review && !ticket.reviewed_at) {
-    try {
-      await api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ reviewed: true }) });
-      await load();
-    } catch (error) {
-      showToast(error.message || 'Không thể ghi nhận việc xem ticket', 'error');
-    }
-  }
 }
 
 function showHaveLine(id) {
@@ -105,6 +107,19 @@ function requireAcknowledgment(id, inputId, message) {
   return false;
 }
 
+async function reviewTicket(id) {
+  if (workflowSubmitting[id]) return;
+  if (!requireAcknowledgment(id, `review-ack-${id}`, 'Vui lòng xác nhận bạn đã kiểm tra trạng thái và evidence của leader.')) return;
+  workflowSubmitting[id] = true;
+  setWorkflowBusy(id, true, 'REVIEWING...');
+  try {
+    await api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ reviewed: true }) });
+    await load();
+    showToast('Đã review ticket. Bạn có thể CFM.', 'success');
+  } catch (error) { showToast(error.message || 'Không thể review ticket', 'error'); }
+  finally { workflowSubmitting[id] = false; setWorkflowBusy(id, false); }
+}
+
 function renderInbox() {
   const items = state.tickets.filter((ticket) => ticket.status !== 'CLOSED' && !ticket.status.includes('COMPLETED'));
   inboxCount.textContent = `${items.length} open`;
@@ -117,6 +132,8 @@ function renderInbox() {
     const reviewRequired = Boolean(ticket.can_review) && ticket.status === 'READ' && !ticket.reviewed_at;
     const actions = canRead
       ? `<div class="workflow-step"><span class="step-label">Step 1 · Xác nhận đã đọc</span><label class="workflow-ack"><input id="read-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="readTicket('${ticket.id}')">Next</button></div></div>`
+      : reviewRequired
+        ? `<div class="workflow-step"><span class="step-label">Step 2 · Review trước khi CFM</span><div class="review-summary">Leader đã đọc ticket${ticket.media?.length ? ' và có evidence đính kèm' : ''}. Hãy kiểm tra nội dung/evidence trước khi xác nhận.</div><label class="workflow-ack"><input id="review-ack-${ticket.id}" type="checkbox"><span>Tôi đã kiểm tra trạng thái và evidence của leader.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="reviewTicket('${ticket.id}')">REVIEWED - NEXT TO CFM</button></div></div>`
       : canConfirm
         ? `<div class="workflow-step"><span class="step-label">Step 2 · Xác nhận ticket</span><label class="workflow-ack"><input id="confirm-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="confirmShift('${ticket.id}')">XÁC NHẬN &amp; TIẾP TỤC</button><button class="btn danger-outline" data-workflow-ticket="${esc(ticket.id)}" onclick="rejectShift('${ticket.id}')">TỪ CHỐI</button></div></div>`
       : canManage
