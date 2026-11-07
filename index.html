@@ -233,6 +233,7 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 @media(prefers-reduced-motion:reduce){.hero,.hero:before,#dashboard,#dashboard #summaryStrip,#dashboard .table-panel,#create:after,#inbox:after,#confirmation:after,.family-models-page:after{animation:none!important}}
 </style>
 <style id="group-charts">
+#summaryStrip{display:none!important}
 #groupCharts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:0 0 22px;perspective:1200px}
 .group-chart-card{position:relative;min-width:0;padding:20px 20px 14px;border:1px solid #ffffff2d;border-radius:18px;background:linear-gradient(145deg,#ffffff16,#ffffff08);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);box-shadow:0 18px 42px #0007,inset 0 1px 0 #fff2;transform:translateZ(8px);overflow:hidden;transition:transform .35s ease,box-shadow .35s ease,border-color .35s ease}
 .group-chart-card:before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 22%,#ffffff0f 42%,transparent 62%);transform:translateX(-120%);animation:chartSheen 8s ease-in-out infinite;pointer-events:none}
