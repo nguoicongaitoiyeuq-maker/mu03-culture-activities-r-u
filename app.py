@@ -170,6 +170,7 @@ def db():
                 add_column(conn, "tickets", "shift_leader", "TEXT NOT NULL DEFAULT ''")
                 add_column(conn, "tickets", "area_leader", "TEXT NOT NULL DEFAULT ''")
                 add_column(conn, "tickets", "recipient_emails", "TEXT NOT NULL DEFAULT '[]'")
+                add_column(conn, "tickets", "target_email", "TEXT NOT NULL DEFAULT ''")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_owner_day ON tickets(owner, day)")
                 conn.execute("""CREATE TABLE IF NOT EXISTS families (
                     owner TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -296,7 +297,11 @@ def highest_role(conn, user):
 
 
 def user_can_view(conn, row, user):
-    if row["family"] == "ALL MU03" or row["owner"] == user:
+    if row["owner"] == user:
+        return True
+    if str(row["target_email"] or "").strip() and row["target_email"].lower() != user.lower():
+        return False
+    if row["family"] == "ALL MU03":
         return True
     return conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (row["family_owner"], row["family"], user)).fetchone() is not None
 
@@ -309,14 +314,16 @@ def ticket_json(row, conn=None, user=None):
         item["leader"] = item.get("area_leader") or DEFAULT_LEADER
     if conn and user:
         role = highest_role(conn, user)
+        target_email = str(item.get("target_email") or "").strip().lower()
+        is_target = not target_email or target_email == user.lower()
         if item["family"] == "ALL MU03":
             is_shift = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='SHIFT_LEADER'", (user,)).fetchone() is not None
             is_area = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='AREA_LEADER'", (user,)).fetchone() is not None
         else:
             is_shift = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
             is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
-        item["can_confirm"] = is_shift
-        item["can_manage"] = is_area
+        item["can_confirm"] = is_target and is_shift
+        item["can_manage"] = is_target and is_area
         item["role"] = role
     return item
 
@@ -389,8 +396,8 @@ def lookup_directory(email: str, request: Request):
 def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
     conn = db()
-    query = "SELECT * FROM tickets WHERE (family='ALL MU03' OR owner=? OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))"
-    args = [user, user]
+    query = "SELECT * FROM tickets WHERE (owner=? OR (target_email<>'' AND lower(target_email)=lower(?)) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
+    args = [user, user, user]
     if day != "all":
         query += " AND day=?"
         args.append(day)
@@ -415,26 +422,42 @@ async def create_ticket(request: Request):
         raise HTTPException(403, "You are not assigned to this family")
     family_owner, family_name = access["owner"], access["name"]
     if family_name == "ALL MU03":
-        broadcast_families = ["Ban Văn Hóa", *[name for name in DEFAULT_FAMILIES if name != "ALL MU03"]]
+        broadcast_families = [name for name in DEFAULT_FAMILIES if name != "ALL MU03"]
         placeholders = ",".join("?" for _ in broadcast_families)
-        members = conn.execute(
-            f"SELECT email, display_name, title, role, managed_by FROM family_members WHERE family_owner=? AND family_name IN ({placeholders}) ORDER BY role DESC, email",
+        broadcast_rows = conn.execute(
+            f"SELECT DISTINCT email, display_name, title, role, managed_by FROM family_members WHERE family_owner=? AND family_name IN ({placeholders}) ORDER BY role DESC, email",
             (CULTURE_GROUP_OWNER, *broadcast_families),
         ).fetchall()
+        targets = []
+        seen = set()
+        for row in broadcast_rows:
+            email = row["email"].strip().lower()
+            if email not in seen:
+                seen.add(email)
+                targets.append(row)
         family_owner = CULTURE_GROUP_OWNER
     else:
         members = member_rows(conn, family_owner, family_name)
-    shifts = [row["email"] for row in members if row["role"] == "SHIFT_LEADER"]
-    areas = [row["email"] for row in members if row["role"] == "AREA_LEADER"]
-    recipients = [row["email"] for row in members]
-    item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": datetime.now().date().isoformat(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": areas[0] if areas else DEFAULT_LEADER, "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": shifts[0] if shifts else "", "area_leader": areas[0] if areas else "", "recipient_emails": json.dumps(recipients)}
-    conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails)""", item)
+        targets = [None]
+        members = list(members)
+    shifts = [row["email"] for row in members if row["role"] == "SHIFT_LEADER"] if family_name != "ALL MU03" else []
+    areas = [row["email"] for row in members if row["role"] == "AREA_LEADER"] if family_name != "ALL MU03" else []
+    recipients = [row["email"] for row in members] if family_name != "ALL MU03" else []
+    if not targets:
+        conn.close()
+        raise HTTPException(400, "No leaders are configured for ALL MU03")
+    results = []
+    for target in targets:
+        target_email = target["email"].strip().lower() if target else ""
+        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": datetime.now().date().isoformat(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target_email if target and target["role"] == "SHIFT_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email}
+        conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email)""", item)
+        row = conn.execute("SELECT * FROM tickets WHERE id=?", (item["id"],)).fetchone()
+        results.append(ticket_json(row, conn, user))
     conn.commit()
-    row = conn.execute("SELECT * FROM tickets WHERE id=?", (item["id"],)).fetchone()
-    result = ticket_json(row, conn, user)
     conn.close()
-    notify_teams(result, "New ticket")
-    return result
+    for result in results:
+        notify_teams(result, "New ticket")
+    return results[0] if len(results) == 1 else {"broadcast": True, "count": len(results), "tickets": results}
 
 
 @app.patch("/api/tickets/{ticket_id}")
