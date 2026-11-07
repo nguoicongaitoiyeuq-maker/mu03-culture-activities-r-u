@@ -478,7 +478,7 @@ async def create_ticket(request: Request):
         family_owner = CULTURE_GROUP_OWNER
     else:
         members = member_rows(conn, family_owner, family_name)
-        targets = [None]
+        targets = [row for row in members if row["role"] == "AREA_LEADER"]
         members = list(members)
     shifts = [row["email"] for row in members if row["role"] == "SHIFT_LEADER"] if family_name != "ALL MU03" else []
     areas = [row["email"] for row in members if row["role"] == "AREA_LEADER"] if family_name != "ALL MU03" else []
