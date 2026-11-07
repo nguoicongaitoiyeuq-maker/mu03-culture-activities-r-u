@@ -33,7 +33,9 @@ function renderFamilyOptions() {
   const select = document.getElementById('family');
   if (!select) return;
   const current = select.value;
-  const names = state.families.filter((name) => name !== 'ALL MU03');
+  const names = state.families
+    .filter((name) => name !== 'Ban Văn Hóa')
+    .sort((left, right) => left === 'ALL MU03' ? -1 : right === 'ALL MU03' ? 1 : 0);
   select.innerHTML = '<option value="" disabled>Select a family model</option>' + names
     .map((name) => `<option value="${esc(name)}">${esc(name)}</option>`)
     .join('');
