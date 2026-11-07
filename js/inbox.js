@@ -106,7 +106,7 @@ function renderInbox() {
     const expanded = Boolean(expandedTickets[ticket.id] || viewedTickets[ticket.id]);
     const canRead = Boolean(ticket.can_manage) && ticket.status === 'WAITING FOR LEADER READ';
     const canConfirm = Boolean(ticket.can_confirm) && ticket.status === 'READ' && Boolean(ticket.read_at) && Boolean(ticket.reviewed_at) && Boolean(viewedTickets[ticket.id]);
-    const canManage = Boolean(ticket.can_manage) && ['SHIFT LEADER CONFIRMED', 'READ', 'WAITING FOR LINE SHARING'].includes(ticket.status);
+    const canManage = Boolean(ticket.can_manage) && Boolean(ticket.can_update_today) && ['SHIFT LEADER CONFIRMED', 'READ', 'WAITING FOR LINE SHARING'].includes(ticket.status);
     const waitingForAssignedLeader = ticket.status === 'WAITING FOR LEADER READ' && !canRead && !canConfirm;
     const reviewRequired = Boolean(ticket.can_review) && ticket.status === 'READ' && !ticket.reviewed_at;
     const actions = canRead
@@ -115,7 +115,7 @@ function renderInbox() {
         ? `<div class="workflow-step"><span class="step-label">Step 2 · Xác nhận ticket</span><label class="workflow-ack"><input id="confirm-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="confirmShift('${ticket.id}')">XÁC NHẬN &amp; TIẾP TỤC</button><button class="btn danger-outline" data-workflow-ticket="${esc(ticket.id)}" onclick="rejectShift('${ticket.id}')">TỪ CHỐI</button></div></div>`
       : canManage
         ? `<div class="workflow-step"><span class="step-label">Step 3 · Chia sẻ line</span><div class="leader-choice"><button class="btn danger-outline" data-workflow-ticket="${esc(ticket.id)}" onclick="noLine('${ticket.id}')">NO LINE</button><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="showHaveLine('${ticket.id}')">HAVE LINE</button></div><div id="have-line-${ticket.id}" class="leader-actions hidden"><label class="workflow-ack"><input id="line-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu toàn bộ quy trình sharing.</span></label><div class="field"><label>Line ID *</label><input id="line-${ticket.id}" required></div><div class="evidence-box"><label>Sharing image / video *</label><input class="leader-media-input" data-id="${esc(ticket.id)}" type="file" accept="image/*,video/*" multiple></div><div id="leader-preview-${esc(ticket.id)}" class="leader-preview"></div><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="completeSharing('${ticket.id}')">SUBMIT HAVE LINE</button></div></div>`
-        : waitingForAssignedLeader ? '<div class="workflow-note">Waiting for the assigned leader to read and submit this ticket.</div>' : '';
+        : waitingForAssignedLeader ? '<div class="workflow-note">Waiting for the assigned leader to read and submit this ticket.</div>' : (ticket.can_manage && !ticket.can_update_today ? '<div class="workflow-note">Ticket ngày cũ chỉ được xem. Không thể cập nhật line hoặc hình ảnh.</div>' : '');
     return `<article id="ticket-${esc(ticket.id)}" class="leader-card ${expanded ? 'ticket-open' : 'ticket-collapsed'}"><div class="ticket-header"><div><div class="ticket-kicker">Production ticket</div><h3>${esc(ticket.title)}</h3><div class="meta">${esc(ticket.id)} · ${esc(ticket.family)} · ${badge(ticket.status)}</div><div class="ticket-assignee">Assigned leader: <b>${esc(ticket.leader || 'Not configured')}</b></div></div></div>${expanded ? `<div class="ticket-details"><div class="ticket-content-block"><span class="ticket-content-label">Sharing request</span><div class="leader-content">${esc(ticket.content)}</div></div><div class="ticket-facts"><div class="ticket-fact"><span>Sender email</span><b>${esc(ticket.owner)}</b></div><div class="ticket-fact"><span>Created</span><b>${new Date(ticket.sent_at).toLocaleString('vi-VN')}</b></div><div class="ticket-fact"><span>Leader read status</span><b>${ticket.read_at ? 'Leader has read this ticket' : 'Waiting for leader to read'}</b></div></div>${ticket.media?.length ? `<div class="ticket-evidence"><span class="ticket-content-label">Attached evidence · click to view</span><div class="leader-media">${mediaHtml(ticket.media, true, ticket.id)}</div></div>` : ''}${actions}</div>` : `<div class="ticket-summary"><p>${reviewRequired ? 'Open this ticket to review the leader status and evidence before confirming.' : 'Open this ticket to read the production details.'}</p><button class="btn primary" onclick="openTicket('${ticket.id}')">${reviewRequired ? 'OPEN &amp; REVIEW' : 'OPEN &amp; READ'}</button></div>`}</article>`;
   }).join('') : '<div class="panel empty">No tickets assigned to your areas.</div>';
   bindLeaderMedia();
@@ -125,6 +125,13 @@ function renderConfirm() {
   const items = state.tickets.filter((ticket) => ticket.status.includes('COMPLETED') && ticket.can_confirm);
   confirmList.innerHTML = items.length ? items.map((ticket) => `<article class="leader-card"><h3>${esc(ticket.title)}</h3><div class="meta">${esc(ticket.id)} · ${esc(ticket.family)} · ${badge(ticket.status)}</div><div class="leader-content">${esc(ticket.content)}</div><div class="leader-actions"><button class="btn green" onclick="closeTicket('${ticket.id}')">CONFIRM & CLOSE</button></div></article>`).join('') : '<div class="panel empty">Nothing is waiting for confirmation.</div>';
 }
+
+setInterval(() => {
+  const inboxPage = document.getElementById('inbox');
+  if (typeof load === 'function' && inboxPage && !inboxPage.classList.contains('hidden') && !Object.values(workflowSubmitting).some(Boolean)) {
+    load().catch(() => {});
+  }
+}, 10000);
 
 let workflowSubmitting = {};
 let viewedTickets = {};
