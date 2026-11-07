@@ -120,7 +120,7 @@ function renderInbox() {
       : canConfirm
         ? `<div class="workflow-step"><span class="step-label">Step 2 · Xác nhận ticket</span><label class="workflow-ack"><input id="confirm-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="confirmShift('${ticket.id}')">XÁC NHẬN &amp; TIẾP TỤC</button><button class="btn danger-outline" data-workflow-ticket="${esc(ticket.id)}" onclick="rejectShift('${ticket.id}')">TỪ CHỐI</button></div></div>`
       : canManage
-        ? `<div class="workflow-step"><span class="step-label">Step 3 · Chia sẻ line</span><div class="leader-choice"><button class="btn danger-outline" data-workflow-ticket="${esc(ticket.id)}" onclick="noLine('${ticket.id}')">NO LINE</button><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="showHaveLine('${ticket.id}')">HAVE LINE</button></div><div id="have-line-${ticket.id}" class="leader-actions hidden"><label class="workflow-ack"><input id="line-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu toàn bộ quy trình sharing.</span></label><div class="field"><label>Line ID *</label><input id="line-${ticket.id}" required></div><div class="evidence-box"><label>Sharing image / video *</label><input class="leader-media-input" data-id="${esc(ticket.id)}" type="file" accept="image/*,video/*" multiple></div><div id="leader-preview-${esc(ticket.id)}" class="leader-preview"></div><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="completeSharing('${ticket.id}')">SUBMIT HAVE LINE</button></div></div>`
+        ? `<div class="workflow-step"><span class="step-label">Step 3 · Chia sẻ line</span><div class="field"><label>Ca làm việc *</label><select id="shift-${ticket.id}"><option value="">Chọn ca</option><option value="day">Day</option><option value="night">Night</option></select></div><div class="leader-choice"><button class="btn danger-outline" data-workflow-ticket="${esc(ticket.id)}" onclick="noLine('${ticket.id}')">NO LINE</button><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="showHaveLine('${ticket.id}')">HAVE LINE</button></div><div id="have-line-${ticket.id}" class="leader-actions hidden"><label class="workflow-ack"><input id="line-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu toàn bộ quy trình sharing.</span></label><div class="field"><label>Line ID *</label><input id="line-${ticket.id}" required></div><div class="evidence-box"><label>Sharing image / video *</label><input class="leader-media-input" data-id="${esc(ticket.id)}" type="file" accept="image/*,video/*" multiple></div><div id="leader-preview-${esc(ticket.id)}" class="leader-preview"></div><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="completeSharing('${ticket.id}')">SUBMIT HAVE LINE</button></div></div>`
         : waitingForAssignedLeader ? '<div class="workflow-note">Waiting for the assigned leader to read and submit this ticket.</div>' : (ticket.can_manage && !ticket.can_update_today ? '<div class="workflow-note">Ticket ngày cũ chỉ được xem. Không thể cập nhật line hoặc hình ảnh.</div>' : '');
     return `<article id="ticket-${esc(ticket.id)}" class="leader-card ${expanded ? 'ticket-open' : 'ticket-collapsed'}"><div class="ticket-header"><div><div class="ticket-kicker">Production ticket</div><h3>${esc(ticket.title)}</h3><div class="meta">${esc(ticket.id)} · ${esc(ticket.family)} · ${badge(ticket.status)}</div><div class="ticket-assignee">Assigned leader: <b>${esc(ticket.leader || 'Not configured')}</b></div></div></div>${expanded ? `<div class="ticket-details"><div class="ticket-content-block"><span class="ticket-content-label">Sharing request</span><div class="leader-content">${esc(ticket.content)}</div></div><div class="ticket-facts"><div class="ticket-fact"><span>Sender email</span><b>${esc(ticket.owner)}</b></div><div class="ticket-fact"><span>Created</span><b>${new Date(ticket.sent_at).toLocaleString('vi-VN')}</b></div><div class="ticket-fact"><span>Leader read status</span><b>${ticket.read_at ? 'Leader has read this ticket' : 'Waiting for leader to read'}</b></div></div>${ticket.media?.length ? `<div class="ticket-evidence"><span class="ticket-content-label">Attached evidence · click to view</span><div class="leader-media">${mediaHtml(ticket.media, true, ticket.id)}</div></div>` : ''}${actions}</div>` : `<div class="ticket-summary"><p>${reviewRequired ? 'Open this ticket to review the leader status and evidence before confirming.' : 'Open this ticket to read the production details.'}</p><button class="btn primary" onclick="openTicket('${ticket.id}')">${reviewRequired ? 'OPEN &amp; REVIEW' : 'OPEN &amp; READ'}</button></div>`}</article>`;
   }).join('') : '<div class="panel empty">No tickets assigned to your areas.</div>';
@@ -174,22 +174,26 @@ async function rejectShift(id) {
 
 async function completeSharing(id) {
   if (workflowSubmitting[id]) return;
+  const shift = (document.getElementById(`shift-${id}`)?.value || '').trim().toLowerCase();
+  if (!shift) { showToast('Vui lòng chọn ca Day hoặc Night', 'error'); return; }
   const line = (document.getElementById(`line-${id}`)?.value || '').trim();
   if (!line) { showToast('Please enter Line ID', 'error'); return; }
   if (!(leaderMedia[id] || []).length) { showToast('Please add sharing image or video', 'error'); return; }
   if (!requireAcknowledgment(id, `line-ack-${id}`, 'Vui lòng xác nhận bạn đã đọc và hiểu toàn bộ quy trình sharing.')) return;
   workflowSubmitting[id] = true;
   setWorkflowBusy(id, true, 'SUBMITTING...');
-  try { await patch(id, { status: 'LINE SHARING COMPLETED', line_id: line, media: leaderMedia[id] || [] }); showToast('HAVE LINE submitted', 'success'); }
+  try { await patch(id, { status: 'LINE SHARING COMPLETED', line_id: line, media: leaderMedia[id] || [], work_shift: shift }); showToast('HAVE LINE submitted', 'success'); }
   catch (error) { showToast(error.message || 'Cannot submit HAVE LINE', 'error'); }
   finally { workflowSubmitting[id] = false; setWorkflowBusy(id, false); }
 }
 
 async function noLine(id) {
   if (workflowSubmitting[id]) return;
+  const shift = (document.getElementById(`shift-${id}`)?.value || '').trim().toLowerCase();
+  if (!shift) { showToast('Vui lòng chọn ca Day hoặc Night', 'error'); return; }
   workflowSubmitting[id] = true;
   setWorkflowBusy(id, true, 'SUBMITTING...');
-  try { await patch(id, { status: 'NO LINE - COMPLETED' }); showToast('NO LINE confirmed', 'success'); }
+  try { await patch(id, { status: 'NO LINE - COMPLETED', work_shift: shift }); showToast('NO LINE confirmed', 'success'); }
   catch (error) { showToast(error.message || 'Cannot update ticket', 'error'); }
   finally { workflowSubmitting[id] = false; setWorkflowBusy(id, false); }
 }
