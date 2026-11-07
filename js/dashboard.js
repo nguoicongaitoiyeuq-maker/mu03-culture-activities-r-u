@@ -55,6 +55,46 @@ function renderWorkflowPareto() {
   });
 }
 
+function chartGroups() {
+  const configured = (state.families || []).filter((name) => name && name !== 'ALL MU03' && name !== 'Ban Văn Hóa');
+  const discovered = state.tickets.flatMap((ticket) => [ticket.target_family, ticket.family]).filter(Boolean);
+  return [...new Set([...configured, ...discovered].filter((name) => name !== 'ALL MU03' && name !== 'Ban Văn Hóa'))];
+}
+
+function ticketGroup(ticket) {
+  return ticket.family === 'ALL MU03' ? (ticket.target_family || 'ALL MU03') : ticket.family;
+}
+
+function renderGroupCharts() {
+  const items = state.tickets.filter((ticket) => state.day === 'all' || ticket.day === state.day);
+  const groups = chartGroups();
+  const definitions = {
+    sent: (ticket) => Boolean(ticket.id),
+    pending: (ticket) => ticket.status !== 'CLOSED' && !ticket.status.includes('COMPLETED'),
+    cfm: (ticket) => ticket.status === 'SHIFT LEADER CONFIRMED',
+    closed: (ticket) => ticket.status === 'CLOSED'
+  };
+  Object.entries(definitions).forEach(([key, matches]) => {
+    const card = document.querySelector(`[data-chart="${key}"]`);
+    if (!card) return;
+    const counts = Object.fromEntries(groups.map((group) => [group, 0]));
+    items.filter(matches).forEach((ticket) => {
+      const group = ticketGroup(ticket);
+      if (Object.prototype.hasOwnProperty.call(counts, group)) counts[group] += 1;
+    });
+    const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+    const max = Math.max(1, ...Object.values(counts));
+    const stage = card.querySelector('.group-chart-stage');
+    const totalNode = card.querySelector('.group-chart-head strong');
+    totalNode.textContent = total;
+    stage.innerHTML = groups.map((group) => {
+      const value = counts[group];
+      const height = value ? Math.max(8, Math.round(value / max * 126)) : 3;
+      return `<div class="group-chart-column ${value ? 'has-value' : ''}" title="${esc(group)}: ${value}"><span class="group-chart-value">${value || ''}</span><i style="height:${height}px"></i><b>${esc(group)}</b></div>`;
+    }).join('');
+  });
+}
+
 function renderRows() {
   const items = state.tickets.filter((ticket) => state.day === 'all' || ticket.day === state.day);
   ticketRows.innerHTML = items.length ? items.map((ticket) => `<tr><td><b>${esc(ticket.id)}</b><br><span class="meta">${new Date(ticket.sent_at).toLocaleString('vi-VN')}</span></td><td>${esc(ticket.title)}</td><td>${esc(ticket.family)}</td><td>${leaderName(ticket.leader)}</td><td>${esc(ticket.line_id || '—')}</td><td>${badge(ticket.status)}</td><td>${formatSla(ticket)}</td></tr>`).join('') : '<tr><td colspan="7" class="empty">No tickets for this date.</td></tr>';
@@ -80,6 +120,7 @@ function renderSummary() {
   summaryCfmBar.style.height = `${Math.max(8, completed / max * 72)}px`;
   summaryClosedBar.style.height = `${Math.max(8, closed / max * 72)}px`;
   summaryDate.textContent = state.day === 'all' ? 'All dates' : state.day;
+  renderGroupCharts();
 }
 
 function refreshSla() {
