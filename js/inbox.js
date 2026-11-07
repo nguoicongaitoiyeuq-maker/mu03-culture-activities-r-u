@@ -126,10 +126,11 @@ function renderInbox() {
   inboxList.innerHTML = items.length ? items.map((ticket) => {
     const expanded = Boolean(expandedTickets[ticket.id] || viewedTickets[ticket.id]);
     const canRead = Boolean(ticket.can_manage) && ticket.status === 'WAITING FOR LEADER READ';
-    const canConfirm = Boolean(ticket.can_confirm) && ticket.status === 'READ' && Boolean(ticket.read_at) && Boolean(ticket.reviewed_at) && Boolean(viewedTickets[ticket.id]);
+    const reviewAfterRead = Boolean(ticket.read_at && ticket.reviewed_at) && new Date(ticket.reviewed_at) >= new Date(ticket.read_at);
+    const canConfirm = Boolean(ticket.can_confirm) && ticket.status === 'READ' && reviewAfterRead && Boolean(viewedTickets[ticket.id]);
     const canManage = Boolean(ticket.can_manage) && Boolean(ticket.can_update_today) && ['SHIFT LEADER CONFIRMED', 'READ', 'WAITING FOR LINE SHARING'].includes(ticket.status);
     const waitingForAssignedLeader = ticket.status === 'WAITING FOR LEADER READ' && !canRead && !canConfirm;
-    const reviewRequired = Boolean(ticket.can_review) && ticket.status === 'READ' && !ticket.reviewed_at;
+    const reviewRequired = Boolean(ticket.can_review) && ticket.status === 'READ' && !reviewAfterRead;
     const actions = canRead
       ? `<div class="workflow-step"><span class="step-label">Step 1 · Xác nhận đã đọc</span><label class="workflow-ack"><input id="read-ack-${ticket.id}" type="checkbox"><span>Tôi đã đọc và hiểu nội dung ticket này.</span></label><div class="leader-choice"><button class="btn green" data-workflow-ticket="${esc(ticket.id)}" onclick="readTicket('${ticket.id}')">Next</button></div></div>`
       : reviewRequired
