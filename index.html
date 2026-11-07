@@ -194,6 +194,44 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 @media(max-width:700px){.hero{height:180px}.hero-content{padding:24px 18px}.nav{min-height:62px;padding:8px 12px}.nav-brand{left:12px}.main{padding:18px 12px 48px}.panel,.table-panel,.pareto-panel,.leader-card,.group-detail,.groups-toolbar,.owner-card,.group-card,.summary-chart,.dashboard-carousel{transform:none}.panel:hover,.table-panel:hover,.pareto-panel:hover,.leader-card:hover,.groups-toolbar:hover,.owner-card:hover,.group-card:hover,.summary-chart:hover,.dashboard-carousel:hover{transform:translateY(-3px)} }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;transform:none!important}}
 </style>
+<style id="motion-polish">
+/* Visual-only refinements: the existing markup and interaction logic stay intact. */
+.hero{background-position:center top;background-size:cover;animation:heroDrift 18s ease-in-out infinite alternate}
+.hero:before{content:'';position:absolute;inset:-30%;z-index:0;background:linear-gradient(115deg,transparent 35%,#ffffff15 47%,transparent 58%);transform:translateX(-55%) rotate(8deg);animation:heroSweep 8s ease-in-out infinite;pointer-events:none}
+.hero-logo{border:0!important;outline:0;object-fit:contain;mix-blend-mode:screen;filter:drop-shadow(0 10px 18px #000b) drop-shadow(0 0 12px #ef233c55);transition:transform .45s cubic-bezier(.2,.8,.2,1),filter .45s ease}
+.hero-logo:hover{transform:translateY(-6px) rotateX(8deg) rotateY(-8deg) scale(1.08);filter:drop-shadow(0 18px 26px #000c) drop-shadow(0 0 22px #ef233caa)}
+.nav-brand{display:none!important}
+.nav{justify-content:center}
+.nav button{overflow:hidden}
+.nav button:before{content:'';position:absolute;left:18%;right:18%;bottom:3px;height:2px;border-radius:999px;background:linear-gradient(90deg,transparent,#ef233c,transparent);transform:scaleX(0);transition:transform .35s ease;box-shadow:0 0 10px #ef233caa}
+.nav button:hover:before,.nav button.active:before{transform:scaleX(1)}
+#dashboard .dashboard-carousel{display:none!important}
+#dashboard{min-height:620px;background-position:center 14%;animation:dashboardDrift 22s ease-in-out infinite alternate}
+#dashboard #summaryStrip{animation:panelFloat 6s ease-in-out infinite}
+#dashboard .table-panel{animation:panelFloat 7s ease-in-out infinite reverse}
+#dashboard .summary-chart-bar:nth-child(2) i:after{animation-delay:.25s}
+#dashboard .summary-chart-bar:nth-child(3) i:after{animation-delay:.5s}
+#dashboard .summary-chart-bar:nth-child(4) i:after{animation-delay:.75s}
+#dashboard .summary-chart-bar:nth-child(5) i:after{animation-delay:1s}
+#create:after,#inbox:after,#confirmation:after,.family-models-page:after{content:'';position:absolute;inset:0;border-radius:inherit;padding:1px;background:linear-gradient(120deg,#ffffff00,#ff617533,#ffffff00,#ef233c55);background-size:240% 240%;animation:borderFlow 8s linear infinite;pointer-events:none;z-index:0;mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor}
+#create>* ,#inbox>* ,#confirmation>* ,.family-models-page>*{z-index:1}
+#create .panel,#inbox .leader-card,#confirmation .leader-card,.family-models-page .group-card{animation:cardEnter .65s cubic-bezier(.2,.8,.2,1) both}
+#create .panel{animation-delay:.08s}
+#inbox .leader-card:nth-child(2n){animation-delay:.08s}
+#inbox .leader-card:nth-child(3n){animation-delay:.16s}
+.group-card:nth-child(2n){animation-delay:.08s}
+.group-card:nth-child(3n){animation-delay:.16s}
+.field input,.field textarea,.field select{background-position:0 0;transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s ease,border-color .3s ease}
+.field input:focus,.field textarea:focus,.field select:focus{transform:translateZ(12px) scale(1.008)}
+@keyframes heroDrift{0%{background-position:48% 0}100%{background-position:54% 8%}}
+@keyframes heroSweep{0%,20%{transform:translateX(-55%) rotate(8deg);opacity:0}45%{opacity:1}75%,100%{transform:translateX(55%) rotate(8deg);opacity:0}}
+@keyframes dashboardDrift{0%{background-position:48% 10%}100%{background-position:54% 22%}}
+@keyframes panelFloat{0%,100%{transform:translateZ(12px) translateY(0)}50%{transform:translateZ(20px) translateY(-4px)}}
+@keyframes borderFlow{0%{background-position:0 50%}100%{background-position:240% 50%}}
+@keyframes cardEnter{from{opacity:0;transform:translateY(16px) translateZ(0)}to{opacity:1;transform:translateY(0) translateZ(8px)}}
+@media(max-width:700px){.hero{animation:none}.hero-logo{width:92px;height:48px}.nav{justify-content:flex-start;padding-left:12px}.nav button:before{left:12%;right:12%}#dashboard{min-height:520px;animation:none}#dashboard #summaryStrip,#dashboard .table-panel{animation:none}}
+@media(prefers-reduced-motion:reduce){.hero,.hero:before,#dashboard,#dashboard #summaryStrip,#dashboard .table-panel,#create:after,#inbox:after,#confirmation:after,.family-models-page:after{animation:none!important}}
+</style>
 </head>
 <body class="app-body">
 <header class="hero">
