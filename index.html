@@ -524,6 +524,19 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 </script>
 <script src="/js/dashboard.js">
 </script>
+<script>
+function renderData() {
+  const list = document.getElementById('dataList');
+  if (!list) return;
+  const items = state.tickets.filter((ticket) => ticket.status === 'CLOSED' && (state.day === 'all' || ticket.day === state.day));
+  list.innerHTML = items.length ? items.map((ticket) => {
+    const media = (ticket.media || []).map((item) => item.type?.startsWith('video')
+      ? `<video controls preload="metadata" src="${item.data}" aria-label="${esc(item.name)}"></video>`
+      : `<img src="${item.data}" alt="${esc(item.name)}">`).join('');
+    return `<article class="data-record"><div class="data-record-head"><div><span class="data-kicker">Closed ticket</span><h3>${esc(ticket.title)}</h3><p>${esc(ticket.id)} · ${esc(ticket.target_family || ticket.family)} · ${esc(ticket.line_id || 'No line')}</p></div><time>${new Date(ticket.closed_at || ticket.sent_at).toLocaleString('vi-VN')}</time></div><div class="data-record-body"><div><strong>Leader</strong><span>${esc(leaderName(ticket.leader))}</span></div><div><strong>Status</strong><span>${badge(ticket.status)}</span></div><div><strong>Content</strong><p>${esc(ticket.content)}</p></div></div>${media ? `<div class="data-media">${media}</div>` : '<div class="data-no-media">No evidence attached.</div>'}</article>`;
+  }).join('') : '<div class="data-empty">No closed tickets for this date.</div>';
+}
+</script>
 <script src="/js/inbox.js">
 </script>
 <script src="/js/families.js">
