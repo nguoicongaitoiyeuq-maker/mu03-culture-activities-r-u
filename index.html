@@ -328,6 +328,30 @@ body{background:linear-gradient(180deg,#fff,#fff5f5 55%,#fff)}
 #create .leader-actions .btn:hover{transform:translateY(-3px);box-shadow:0 14px 28px #7a1e2930}
 @keyframes ticketPanelIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:700px){#create{background-size:auto,165% auto;background-position:center,center 28%;padding:22px 14px 42px}}
+#inbox .top{align-items:center}
+#inboxCount{padding:7px 11px;background:#fff0d1;color:#8a5a00;border:1px solid #f0d08d}
+#inboxList{gap:16px}
+#inbox .leader-card{padding:0;overflow:hidden;border-left:4px solid var(--red);border-radius:16px;background:#fffffff5;box-shadow:0 12px 30px #7a1e2915}
+#inbox .leader-card:hover{transform:translateY(-2px);box-shadow:0 20px 38px #7a1e2924}
+#inbox .ticket-header{padding:20px 24px;background:linear-gradient(120deg,#fff9f9,#fff);border-bottom:1px solid #f0dfe1}
+#inbox .ticket-header h3{font-size:22px;margin:4px 0 7px;color:#17191d}
+#inbox .ticket-kicker{letter-spacing:.12em;color:#a30e1b}
+#inbox .ticket-details{margin:0;padding:22px 24px 24px}
+#inbox .ticket-content-block{padding:17px 18px;background:#fffafa;border:1px solid #f0dfe1;border-radius:12px}
+#inbox .ticket-content-label{display:block;color:#8a2430;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+#inbox .leader-content{margin:8px 0 0;font-size:16px;line-height:1.7}
+#inbox .ticket-facts{grid-template-columns:repeat(2,minmax(0,1fr));margin:14px 0 0}
+#inbox .ticket-fact{background:#fff;border-color:#f0e1e3}
+#inbox .ticket-evidence{margin-top:16px;padding-top:16px;border-top:1px solid #f0dfe1}
+#inbox .leader-media{margin:10px 0 0}
+#inbox .workflow-step{padding:18px;margin-top:18px;border:1px solid #ecc9ce;border-radius:13px;background:linear-gradient(135deg,#fff7f7,#fff);box-shadow:0 8px 18px #7a1e2910}
+#inbox .step-label{margin-bottom:12px;color:#7a1e29}
+#inbox .workflow-ack{display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;color:#3f4650;font-weight:700;cursor:pointer}
+#inbox .workflow-ack input{width:18px;height:18px;flex:0 0 auto;margin:1px 0 0;accent-color:var(--red)}
+#inbox .leader-choice{margin-top:0}
+#inbox .leader-choice .btn{min-width:150px}
+#inbox .btn[disabled]{opacity:.6;cursor:wait;transform:none;filter:none}
+@media(max-width:700px){#inbox .ticket-header,#inbox .ticket-details{padding-left:16px;padding-right:16px}#inbox .ticket-facts{grid-template-columns:1fr}#inbox .leader-choice .btn{width:100%}}
 </style>
 </body>
 </html>
