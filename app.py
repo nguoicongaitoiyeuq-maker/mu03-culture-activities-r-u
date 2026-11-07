@@ -172,6 +172,8 @@ def db():
                 add_column(conn, "tickets", "recipient_emails", "TEXT NOT NULL DEFAULT '[]'")
                 add_column(conn, "tickets", "target_email", "TEXT NOT NULL DEFAULT ''")
                 add_column(conn, "tickets", "target_family", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "tickets", "reviewed_by", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "tickets", "reviewed_at", "TEXT")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_owner_day ON tickets(owner, day)")
                 conn.execute("""CREATE TABLE IF NOT EXISTS families (
                     owner TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -342,11 +344,15 @@ def ticket_json(row, conn=None, user=None):
         else:
             is_shift = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
             is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
-        item["can_confirm"] = is_target and is_shift
+        item["can_review"] = False
+        item["can_confirm"] = is_target and is_shift and str(item.get("reviewed_by") or "").lower() == user.lower()
         item["can_manage"] = is_target and is_area
         if item["family"] == "ALL MU03" and target_email and target_row and target_row["role"] == "AREA_LEADER":
-            item["can_confirm"] = bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
+            item["can_review"] = item["status"] == "READ" and bool(item.get("read_at")) and bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
+            item["can_confirm"] = item["can_review"] and str(item.get("reviewed_by") or "").lower() == user.lower()
             item["can_manage"] = is_target
+        elif is_target and is_shift:
+            item["can_review"] = item["status"] == "READ" and bool(item.get("read_at"))
         item["role"] = role
     return item
 
@@ -503,6 +509,9 @@ async def update_ticket(ticket_id: str, request: Request):
     if status in ("SHIFT LEADER CONFIRMED", "SHIFT LEADER REJECTED") and (row["status"] != "READ" or not row["read_at"]):
         conn.close()
         raise HTTPException(409, "The assigned leader must read and update this ticket first")
+    if payload.get("reviewed") is True and not current.get("can_review"):
+        conn.close()
+        raise HTTPException(403, "Shift Leader review is required before confirmation")
     if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and not current.get("can_manage"):
         conn.close()
         raise HTTPException(403, "Only the area leader can manage this ticket")
@@ -517,6 +526,9 @@ async def update_ticket(ticket_id: str, request: Request):
         conn.close()
         raise HTTPException(403, "Only the assigned shift leader can close this ticket")
     fields = {key: payload[key] for key in ("status", "line_id", "note") if key in payload}
+    if payload.get("reviewed") is True:
+        fields["reviewed_by"] = user
+        fields["reviewed_at"] = now_iso()
     if "media" in payload:
         fields["media_json"] = json.dumps(payload["media"])
     if status == "READ":
