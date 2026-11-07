@@ -320,6 +320,7 @@ def ticket_json(row, conn=None, user=None):
     item = dict(row)
     item["media"] = json.loads(item.pop("media_json") or "[]")
     item["recipients"] = json.loads(item.pop("recipient_emails", "[]") or "[]")
+    item["can_update_today"] = item.get("day") == datetime.now().date().isoformat()
     if not str(item.get("leader") or "").strip() or item["leader"] == "Leader Inbox":
         item["leader"] = item.get("area_leader") or DEFAULT_LEADER
     if conn and user:
@@ -515,6 +516,9 @@ async def update_ticket(ticket_id: str, request: Request):
     if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and not current.get("can_manage"):
         conn.close()
         raise HTTPException(403, "Only the area leader can manage this ticket")
+    if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and row["day"] != datetime.now().date().isoformat():
+        conn.close()
+        raise HTTPException(409, "Only tickets from today can be updated")
     if status == "LINE SHARING COMPLETED":
         if not str(payload.get("line_id", "")).strip():
             conn.close()
