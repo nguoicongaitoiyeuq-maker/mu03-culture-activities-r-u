@@ -611,5 +611,31 @@ function renderData() {
 #inbox .btn[disabled]{opacity:.6;cursor:wait;transform:none;filter:none}
 @media(max-width:700px){#inbox .ticket-header,#inbox .ticket-details{padding-left:16px;padding-right:16px}#inbox .ticket-facts{grid-template-columns:1fr}#inbox .leader-choice .btn{width:100%}}
 </style>
+<style id="hd-clarity-pass">
+html{-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+body.app-body{font-synthesis:none}
+.hero h1,.top h2,.group-chart-head h3,.group-chart-head strong,.panel-title h3,.data-record h3,.group-card h4{ text-rendering:geometricPrecision;text-shadow:none}
+.nav,.panel,.table-panel,.pareto-panel,.leader-card,.group-detail,.groups-toolbar,.owner-card,.group-card,.group-chart-card,.data-record,#create .panel,#inbox .leader-card,#confirmation .leader-card{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;opacity:1}
+#dashboard .group-chart-card,#dashboard .table-panel{background:#fff!important;color:#24161a!important}
+#dashboard .group-chart-stage{background:#fff!important}
+#dashboard .group-chart-column i{opacity:1}
+#dashboard .table-panel table{background:#fff}
+#dashboard .table-panel th{font-weight:900}
+#dashboard .table-panel td{color:#38262b;background:#fff}
+#dashboard .table-panel tbody tr:hover td{background:#fff3f5}
+.family-models-page{filter:none!important;background:linear-gradient(90deg,#080a0ef5,#101114df 55%,#070809f5),url('/asset/12.png') center/cover fixed no-repeat!important}
+.family-models-page .groups-toolbar,.family-models-page .group-card,.family-models-page .group-detail,.family-models-page .owner-card{opacity:1;background:#fff!important;color:#24161a;box-shadow:0 16px 30px #0007,0 1px 0 #fff inset}
+.family-models-page .group-card h4,.family-models-page .groups-toolbar h3,.family-models-page .owner-card h4{color:#70101f;text-shadow:none}
+.family-models-page .group-card .group-count,.family-models-page .group-roster-preview span,.family-models-page .groups-toolbar p{color:#5e4a50}
+#create .panel,#inbox .leader-card,#confirmation .leader-card{background:#fff!important;color:#24161a;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#create .field label,#inbox label,#confirmation label{color:#4a3036;text-shadow:none}
+.nav-right{align-items:center}
+.date-picker{appearance:none;color:#64101d!important;background:#fff!important;border:1px solid #c1122f!important;border-radius:10px!important;box-shadow:0 5px 14px #7a1e2922,inset 0 1px 0 #fff!important;font-weight:800;letter-spacing:.02em;cursor:pointer}
+.date-picker::-webkit-calendar-picker-indicator{opacity:1;cursor:pointer;filter:sepia(1) saturate(7) hue-rotate(315deg) brightness(.7)}
+.date-picker:focus{outline:0;border-color:#ef233c!important;box-shadow:0 0 0 3px #ef233c2b,0 9px 18px #7a1e2933!important}
+.date-reset{background:linear-gradient(135deg,#ffffff,#ffecef)!important;color:#7a1223!important;border-color:#d97887!important;font-weight:900}
+.date-reset:hover{background:#fff!important;color:#b11228!important}
+@media(max-width:700px){.date-picker{min-width:125px;font-size:12px}.nav-right{margin-left:auto}.group-chart-card,.table-panel{opacity:1}}
+</style>
 </body>
 </html>
