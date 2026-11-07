@@ -491,9 +491,10 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 <section id="data" class="page hidden">
 <div class="top">
 <div>
-<h2>Closed Ticket Data</h2>
-<p>Archived tickets with leader evidence and final status.</p>
+<h2>Ticket Data Archive</h2>
+<p>All sent tickets, statuses, content and evidence.</p>
 </div>
+<button id="dataExportBtn" class="btn primary" type="button">EXPORT EXCEL</button>
 </div>
 <div id="dataList" class="data-list"></div>
 </section>
@@ -636,6 +637,10 @@ body.app-body{font-synthesis:none}
 .date-reset{background:linear-gradient(135deg,#ffffff,#ffecef)!important;color:#7a1223!important;border-color:#d97887!important;font-weight:900}
 .date-reset:hover{background:#fff!important;color:#b11228!important}
 @media(max-width:700px){.date-picker{min-width:125px;font-size:12px}.nav-right{margin-left:auto}.group-chart-card,.table-panel{opacity:1}}
+</style>
+<style id="data-scroll-polish">
+.data-record-body p{max-height:96px;overflow:auto;padding-right:8px;white-space:pre-wrap}
+.data-record-body span{max-width:100%;overflow-wrap:anywhere}
 </style>
 </body>
 </html>

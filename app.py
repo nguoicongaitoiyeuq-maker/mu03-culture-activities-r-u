@@ -1,8 +1,11 @@
 from datetime import datetime, timezone
+import base64
+from io import BytesIO
 import json
 import os
 import csv
 import sqlite3
+import tempfile
 import threading
 from pathlib import Path
 from urllib.request import Request as UrlRequest, urlopen
@@ -10,6 +13,10 @@ from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
+from starlette.background import BackgroundTask
+from openpyxl import Workbook
+from openpyxl.drawing.image import Image as ExcelImage
+from openpyxl.styles import Alignment, Font, PatternFill
 
 ROOT = Path(__file__).parent
 BANGKOK_TZ = ZoneInfo("Asia/Bangkok")
@@ -445,6 +452,75 @@ def list_tickets(request: Request, day: str = "all"):
     result = [ticket_json(row, conn, user) for row in rows]
     conn.close()
     return result
+
+
+def remove_export(path):
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+
+@app.get("/api/tickets/export")
+def export_tickets(request: Request, day: str = "all"):
+    user = user_email(request)
+    conn = db()
+    query = "SELECT * FROM tickets WHERE (owner=? OR lower(shift_leader)=lower(?) OR (target_email<>'' AND (lower(target_email)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND lower(m.email)=lower(tickets.target_email) AND m.role='AREA_LEADER' AND lower(m.managed_by)=lower(?) AND (tickets.target_family='' OR m.family_name=tickets.target_family)))) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
+    args = [user, user, user, user, user]
+    if day != "all":
+        query += " AND day=?"
+        args.append(day)
+    rows = conn.execute(query + " ORDER BY sent_at DESC", args).fetchall()
+    items = [ticket_json(row, conn, user) for row in rows]
+    conn.close()
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Ticket Data"
+    evidence = workbook.create_sheet("Evidence")
+    headers = ["Ticket ID", "Sent Date", "Closed Date", "Status", "Group", "Title", "Sender", "Leader", "Line", "Work Shift", "Content", "Media Files"]
+    sheet.append(headers)
+    evidence.append(["Ticket ID", "Group", "File", "Type", "Preview"])
+    header_fill = PatternFill("solid", fgColor="8B0B1A")
+    header_font = Font(color="FFFFFF", bold=True)
+    for target in (sheet, evidence):
+        for cell in target[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+        target.freeze_panes = "A2"
+        target.auto_filter.ref = target.dimensions
+    widths = [24, 14, 14, 28, 18, 28, 34, 34, 14, 14, 72, 34]
+    for index, width in enumerate(widths, 1):
+        sheet.column_dimensions[chr(64 + index)].width = width
+    for index, width in enumerate([24, 18, 34, 14, 24], 1):
+        evidence.column_dimensions[chr(64 + index)].width = width
+    evidence_row = 2
+    for item in items:
+        media = item.get("media") or []
+        media_names = ", ".join(str(entry.get("name", "")) for entry in media)
+        sheet.append([item.get("id", ""), item.get("day", ""), str(item.get("closed_at") or ""), item.get("status", ""), item.get("target_family") or item.get("family", ""), item.get("title", ""), item.get("owner", ""), item.get("leader", ""), item.get("line_id", ""), item.get("work_shift", ""), item.get("content", ""), media_names])
+        row_number = sheet.max_row
+        sheet.cell(row_number, 11).alignment = Alignment(wrap_text=True, vertical="top")
+        for entry in media:
+            evidence.append([item.get("id", ""), item.get("target_family") or item.get("family", ""), entry.get("name", ""), entry.get("type", ""), ""])
+            evidence_row = evidence.max_row
+            evidence.cell(evidence_row, 1).alignment = Alignment(vertical="top")
+            data = str(entry.get("data", ""))
+            if data.startswith("data:image/") and "," in data:
+                try:
+                    image = ExcelImage(BytesIO(base64.b64decode(data.split(",", 1)[1])))
+                    image.width = 180
+                    image.height = 110
+                    evidence.add_image(image, f"E{evidence_row}")
+                    evidence.row_dimensions[evidence_row].height = 86
+                except Exception:
+                    pass
+    sheet.auto_filter.ref = sheet.dimensions
+    evidence.auto_filter.ref = evidence.dimensions
+    export_path = os.path.join(tempfile.gettempdir(), f"mu03-ticket-data-{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx")
+    workbook.save(export_path)
+    return FileResponse(export_path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=os.path.basename(export_path), background=BackgroundTask(remove_export, export_path))
 
 
 @app.post("/api/tickets")
