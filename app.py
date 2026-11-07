@@ -171,6 +171,7 @@ def db():
                 add_column(conn, "tickets", "area_leader", "TEXT NOT NULL DEFAULT ''")
                 add_column(conn, "tickets", "recipient_emails", "TEXT NOT NULL DEFAULT '[]'")
                 add_column(conn, "tickets", "target_email", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "tickets", "target_family", "TEXT NOT NULL DEFAULT ''")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_owner_day ON tickets(owner, day)")
                 conn.execute("""CREATE TABLE IF NOT EXISTS families (
                     owner TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -299,8 +300,15 @@ def highest_role(conn, user):
 def user_can_view(conn, row, user):
     if row["owner"] == user:
         return True
-    if str(row["target_email"] or "").strip() and row["target_email"].lower() != user.lower():
-        return False
+    target_email = str(row["target_email"] or "").strip()
+    if target_email:
+        if target_email.lower() == user.lower():
+            return True
+        target_family = str(row["target_family"] or "").strip()
+        return conn.execute("""SELECT 1 FROM family_members m
+            WHERE m.family_owner=? AND lower(m.email)=lower(?) AND m.role='AREA_LEADER'
+              AND lower(m.managed_by)=lower(?) AND (?='' OR m.family_name=?) LIMIT 1""",
+            (row["family_owner"], target_email, user, target_family, target_family)).fetchone() is not None
     if row["family"] == "ALL MU03":
         return True
     return conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (row["family_owner"], row["family"], user)).fetchone() is not None
@@ -317,13 +325,28 @@ def ticket_json(row, conn=None, user=None):
         target_email = str(item.get("target_email") or "").strip().lower()
         is_target = not target_email or target_email == user.lower()
         if item["family"] == "ALL MU03":
-            is_shift = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='SHIFT_LEADER'", (user,)).fetchone() is not None
-            is_area = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='AREA_LEADER'", (user,)).fetchone() is not None
+            target_family = str(item.get("target_family") or "").strip()
+            target_row = conn.execute("""SELECT role, managed_by FROM family_members
+                WHERE family_owner=? AND lower(email)=lower(?) AND role IN ('AREA_LEADER','SHIFT_LEADER')
+                  AND (?='' OR family_name=?) ORDER BY role DESC LIMIT 1""",
+                (item["family_owner"], target_email, target_family, target_family)).fetchone() if target_email else None
+            if target_row and target_row["role"] == "AREA_LEADER":
+                is_area = is_target
+                is_shift = bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
+            elif target_row and target_row["role"] == "SHIFT_LEADER":
+                is_shift = is_target
+                is_area = False
+            else:
+                is_shift = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='SHIFT_LEADER'", (user,)).fetchone() is not None
+                is_area = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='AREA_LEADER'", (user,)).fetchone() is not None
         else:
             is_shift = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
             is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
         item["can_confirm"] = is_target and is_shift
         item["can_manage"] = is_target and is_area
+        if item["family"] == "ALL MU03" and target_email and target_row and target_row["role"] == "AREA_LEADER":
+            item["can_confirm"] = bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
+            item["can_manage"] = is_target
         item["role"] = role
     return item
 
@@ -396,8 +419,8 @@ def lookup_directory(email: str, request: Request):
 def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
     conn = db()
-    query = "SELECT * FROM tickets WHERE (owner=? OR (target_email<>'' AND lower(target_email)=lower(?)) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
-    args = [user, user, user]
+    query = "SELECT * FROM tickets WHERE (owner=? OR (target_email<>'' AND (lower(target_email)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND lower(m.email)=lower(tickets.target_email) AND m.role='AREA_LEADER' AND lower(m.managed_by)=lower(?) AND (tickets.target_family='' OR m.family_name=tickets.target_family)))) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
+    args = [user, user, user, user]
     if day != "all":
         query += " AND day=?"
         args.append(day)
@@ -425,7 +448,7 @@ async def create_ticket(request: Request):
         broadcast_families = [name for name in DEFAULT_FAMILIES if name != "ALL MU03"]
         placeholders = ",".join("?" for _ in broadcast_families)
         broadcast_rows = conn.execute(
-            f"SELECT DISTINCT email, display_name, title, role, managed_by FROM family_members WHERE family_owner=? AND family_name IN ({placeholders}) ORDER BY role DESC, email",
+            f"SELECT DISTINCT family_name, email, display_name, title, role, managed_by FROM family_members WHERE family_owner=? AND family_name IN ({placeholders}) AND role='AREA_LEADER' ORDER BY email",
             (CULTURE_GROUP_OWNER, *broadcast_families),
         ).fetchall()
         targets = []
@@ -449,8 +472,8 @@ async def create_ticket(request: Request):
     results = []
     for target in targets:
         target_email = target["email"].strip().lower() if target else ""
-        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": datetime.now().date().isoformat(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target_email if target and target["role"] == "SHIFT_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email}
-        conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email)""", item)
+        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": datetime.now().date().isoformat(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target["managed_by"].strip().lower() if target and target["role"] == "AREA_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email, "target_family": target["family_name"] if target and target["role"] == "AREA_LEADER" else ""}
+        conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email,target_family) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email,:target_family)""", item)
         row = conn.execute("SELECT * FROM tickets WHERE id=?", (item["id"],)).fetchone()
         results.append(ticket_json(row, conn, user))
     conn.commit()
