@@ -2,6 +2,7 @@ function renderAll() {
   renderKpis();
   renderSummary();
   renderRows();
+  renderData();
   renderWorkflowPareto();
   renderInbox();
   renderConfirm();
@@ -26,6 +27,8 @@ function applyState(session, tickets, familiesList) {
   setAccountEmail(session.user);
   daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
   daySelect.value = state.day;
+  const dayPicker = document.getElementById('dayPicker');
+  if (dayPicker) dayPicker.value = state.day === 'all' ? '' : state.day;
   renderAll();
 }
 

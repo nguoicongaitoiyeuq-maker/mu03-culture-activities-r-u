@@ -1,7 +1,23 @@
 daySelect.onchange = () => {
   state.day = daySelect.value;
+  const dayPicker = document.getElementById('dayPicker');
+  if (dayPicker) dayPicker.value = state.day === 'all' ? '' : state.day;
   renderAll();
 };
+
+const dayPicker = document.getElementById('dayPicker');
+dayPicker?.addEventListener('change', () => {
+  state.day = dayPicker.value || 'all';
+  daySelect.value = state.day;
+  renderAll();
+});
+
+document.getElementById('allDatesBtn')?.addEventListener('click', () => {
+  state.day = 'all';
+  daySelect.value = 'all';
+  if (dayPicker) dayPicker.value = '';
+  renderAll();
+});
 
 let galleryIndex = 0;
 setInterval(() => {
