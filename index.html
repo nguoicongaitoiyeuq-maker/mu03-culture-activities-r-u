@@ -141,6 +141,59 @@ body{background:linear-gradient(180deg,#fff,#fff5f5 55%,#fff)}
 #confirmation>*{position:relative;z-index:1}
 #confirmation .top h2{color:#fff}
 </style>
+<style id="full-3d-theme">
+:root{--theme-red:#e30620;--theme-red-deep:#4a0712;--theme-ink:#0c0609;--theme-glass:#ffffff12;--theme-edge:#ffffff2b}
+html{background:var(--theme-ink)}
+body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 42%,#070306 100%);color:#fef6f7}
+.hero{height:220px;background:linear-gradient(115deg,#080205e8,#680b1caa 52%,#070205df),url('/asset/17.webp') center/cover fixed no-repeat;box-shadow:0 24px 55px #0009,inset 0 -1px 0 #ff899622;transform:translateZ(0)}
+.hero:after{background:linear-gradient(90deg,#070205dd,#7a0d20a6 52%,#0702055c)}
+.hero-content{padding:34px 44px;transform:translateZ(18px)}
+.hero h1{text-shadow:0 5px 22px #000;letter-spacing:.01em}
+.hero-logo{box-shadow:0 12px 24px #0009,0 0 0 1px #ff829044;transition:transform .35s ease,box-shadow .35s ease}
+.hero-logo:hover{transform:translateY(-5px) rotateX(5deg) rotateY(-5deg) scale(1.04);box-shadow:0 18px 30px #000b,0 0 24px #ef233c88}
+.user-pill{box-shadow:0 12px 26px #0008,0 0 0 1px #ef233c44;transform:translateZ(20px);transition:transform .3s ease,box-shadow .3s ease}
+.user-pill:hover{transform:translateY(-4px) translateZ(28px);box-shadow:0 18px 32px #000a,0 0 20px #ef233c66}
+.nav{position:sticky;isolation:isolate;min-height:70px;padding:12px 34px;background:linear-gradient(180deg,#fff,#f8e9eb);border:0;box-shadow:0 18px 42px #0008,0 1px 0 #fff inset;perspective:1200px}
+.nav:before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,#ffffffaa,#ffffff33 50%,#ffb2bb33);pointer-events:none}
+.nav:after{left:8%;right:8%;bottom:0;height:3px;background:linear-gradient(90deg,transparent,#b70d21,#ff5a6e,#b70d21,transparent);opacity:.85;box-shadow:0 0 16px #ef233c88}
+.nav-brand{left:34px;color:#b10e20;text-shadow:0 2px 8px #7a1e2922;transform:translateZ(12px)}
+.nav button{position:relative;transform-style:preserve-3d;transition:transform .32s cubic-bezier(.2,.8,.2,1),box-shadow .32s ease,background .32s ease,color .32s ease}
+.nav button:after{content:'';position:absolute;inset:0;border-radius:9px;box-shadow:inset 0 1px 0 #fff,inset 0 -1px 0 #b10e2022;opacity:0;transition:opacity .25s ease;pointer-events:none}
+.nav button:hover{transform:translateY(-5px) rotateX(8deg) rotateY(-2deg) translateZ(18px);background:#fff;box-shadow:0 14px 24px #7a1e2930,0 0 16px #ef233c26}
+.nav button:hover:after,.nav button.active:after{opacity:1}
+.nav button.active{background:linear-gradient(135deg,#fff,#ffecee);color:#b10e20;transform:translateY(-2px) translateZ(10px);box-shadow:0 10px 22px #7a1e2930,0 0 18px #ef233c22}
+.date-select{box-shadow:0 8px 16px #7a1e2918;transition:transform .25s ease,box-shadow .25s ease}
+.date-select:hover{transform:translateY(-3px) translateZ(10px);box-shadow:0 13px 24px #7a1e2930}
+.main{position:relative;max-width:1640px;padding:34px 34px 70px;background:linear-gradient(180deg,#19070bdd,#0d0408e8);box-shadow:0 0 0 1px #ffffff0e,inset 0 18px 50px #0005}
+.main:before{content:'';position:absolute;inset:0;z-index:0;background:linear-gradient(120deg,#ff31430a 1px,transparent 1px),linear-gradient(30deg,#ff314306 1px,transparent 1px);background-size:54px 54px;mask-image:linear-gradient(180deg,#000,transparent 65%);pointer-events:none}
+.main>.page{position:relative;z-index:1}
+.page:not(.hidden){animation:pageRise .55s cubic-bezier(.2,.8,.2,1) both}
+.top h2{color:#fff;text-shadow:0 4px 18px #000a}
+.btn{position:relative;overflow:hidden;border:1px solid #ff8e9b55;background:linear-gradient(145deg,#fff7f8,#f3d9dd);color:#841020;box-shadow:0 9px 0 #78101d,0 16px 28px #0006,inset 0 1px 0 #fff;transform:translateY(0) translateZ(10px);transition:transform .22s ease,box-shadow .22s ease,filter .22s ease}
+.btn:before{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 25%,#fff9 45%,transparent 65%);transform:translateX(-130%);transition:transform .55s ease;pointer-events:none}
+.btn:hover{filter:brightness(1.06);transform:translateY(-5px) translateZ(20px);box-shadow:0 13px 0 #78101d,0 24px 34px #0008,0 0 20px #ef233c44}
+.btn:hover:before{transform:translateX(130%)}
+.btn:active{transform:translateY(3px) translateZ(6px);box-shadow:0 4px 0 #78101d,0 10px 18px #0006}
+.btn.primary{background:linear-gradient(135deg,#ef233c,#980b1d);border-color:#ff8995;color:#fff;box-shadow:0 9px 0 #5d0712,0 16px 28px #0008,inset 0 1px 0 #ffb1ba}
+.btn.primary:hover{box-shadow:0 13px 0 #5d0712,0 24px 34px #0009,0 0 24px #ef233c88}
+.panel,.table-panel,.pareto-panel,.leader-card,.group-detail,.groups-toolbar,.owner-card,.group-card,.summary-chart,.dashboard-carousel{border-color:var(--theme-edge);box-shadow:0 18px 42px #0007,0 0 0 1px #ffffff0b inset,0 1px 0 #fff2 inset;transform:translateZ(8px);transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s ease,border-color .35s ease,background .35s ease}
+.panel:hover,.table-panel:hover,.pareto-panel:hover,.leader-card:hover,.groups-toolbar:hover,.owner-card:hover,.group-card:hover,.summary-chart:hover,.dashboard-carousel:hover{transform:translateY(-6px) translateZ(18px);box-shadow:0 28px 58px #0009,0 0 24px #ef233c22,0 0 0 1px #ffffff16 inset}
+.field input,.field textarea,.field select,.leader-actions input{border-color:#b86b75;background:linear-gradient(145deg,#fff,#f7eaec);box-shadow:inset 0 2px 5px #5a0c171c,0 4px 10px #0002;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease,background .25s ease}
+.field input:hover,.field textarea:hover,.field select:hover,.leader-actions input:hover{transform:translateY(-2px);border-color:#ef233c;box-shadow:inset 0 2px 5px #5a0c1725,0 9px 16px #0003}
+.field input:focus,.field textarea:focus,.field select:focus{transform:translateY(-3px);border-color:#ef233c;box-shadow:0 0 0 3px #ef233c2b,0 12px 22px #0004}
+.drop,.workflow-step,.ticket-content-block,.evidence-box{box-shadow:inset 0 1px 0 #fff7,0 10px 22px #0003}
+#create,#inbox,#confirmation,.family-models-page{box-shadow:inset 0 0 0 1px #ffffff22,0 24px 70px #0009}
+#create .panel,#inbox .leader-card,#confirmation .leader-card,.family-models-page .group-card,.family-models-page .group-detail{background:linear-gradient(145deg,#fffefdf5,#f7e9ebed);color:#201015}
+#create .panel:hover,#inbox .leader-card:hover,#confirmation .leader-card:hover,.family-models-page .group-card:hover,.family-models-page .group-detail:hover{border-color:#ff899566}
+#inbox .ticket-header,#inbox .ticket-details{background:linear-gradient(135deg,#fff,#f9e9eb)}
+#inbox .workflow-step{background:linear-gradient(145deg,#fff8f9,#f1dfe2)}
+#confirmation .top h2,#inbox .top h2,#create .top h2{transform:translateZ(10px)}
+#dashboard .top h2:before,#dashboard .dashboard-carousel:before{content:none}
+#dashboard .dashboard-carousel:after{background:linear-gradient(180deg,#12020815 45%,#120208d8),linear-gradient(90deg,#12020880,transparent 35%,#12020822)}
+@keyframes pageRise{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:700px){.hero{height:180px}.hero-content{padding:24px 18px}.nav{min-height:62px;padding:8px 12px}.nav-brand{left:12px}.main{padding:18px 12px 48px}.panel,.table-panel,.pareto-panel,.leader-card,.group-detail,.groups-toolbar,.owner-card,.group-card,.summary-chart,.dashboard-carousel{transform:none}.panel:hover,.table-panel:hover,.pareto-panel:hover,.leader-card:hover,.groups-toolbar:hover,.owner-card:hover,.group-card:hover,.summary-chart:hover,.dashboard-carousel:hover{transform:translateY(-3px)} }
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;transform:none!important}}
+</style>
 </head>
 <body class="app-body">
 <header class="hero">
