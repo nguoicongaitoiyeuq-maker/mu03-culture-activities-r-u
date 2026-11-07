@@ -285,6 +285,11 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 @media(max-width:700px){#dashboard .table-panel .panel-title{margin:-3px -3px 16px;padding:12px}.group-chart-card{transform:none!important}#create,#inbox,#confirmation,.family-models-page{animation:none;background-size:auto 115%}}
 @media(prefers-reduced-motion:reduce){#dashboard .table-panel .panel-title:after,#create,#inbox,#confirmation,.family-models-page{animation:none!important}}
 </style>
+<style id="data-and-family-polish">
+.nav-right{gap:7px}.date-picker{min-width:142px;height:38px;padding:8px 10px}.date-reset{padding:8px 11px;font-size:12px;box-shadow:0 5px 0 #78101d,0 10px 18px #0004}.nav-right #daySelect{display:none}
+.data-list{display:grid;gap:18px}.data-record{padding:22px;border:1px solid #ead5d9;border-radius:18px;background:#fffdfd;color:#2b151a;box-shadow:0 18px 42px #0006,0 1px 0 #fff inset;transition:transform .3s ease,box-shadow .3s ease}.data-record:hover{transform:translateY(-5px) translateZ(12px);box-shadow:0 26px 54px #0008,0 0 20px #ef233c22}.data-record-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding-bottom:15px;border-bottom:1px solid #ecdde0}.data-record-head h3{margin:4px 0 5px;color:#5f0c1b;font-size:21px}.data-record-head p,.data-record-head time{margin:0;color:#7b6269;font-size:12px}.data-kicker{color:#c1122b;font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.data-record-body{display:grid;grid-template-columns:180px 170px 1fr;gap:16px;padding:16px 0}.data-record-body>div{display:grid;gap:5px;align-content:start}.data-record-body strong{color:#8a2430;font-size:10px;letter-spacing:.12em;text-transform:uppercase}.data-record-body span,.data-record-body p{margin:0;color:#332126;line-height:1.55}.data-media{display:flex;gap:12px;flex-wrap:wrap;padding-top:15px;border-top:1px solid #ecdde0}.data-media img,.data-media video{width:190px;height:120px;object-fit:cover;border-radius:10px;border:1px solid #e5cbd0;box-shadow:0 8px 18px #7a1e2922}.data-no-media,.data-empty{padding:24px;text-align:center;color:#856d74;border:1px dashed #d7b9bf;border-radius:12px;background:#fff8f9}.family-models-page{background:linear-gradient(90deg,#080a0ee8,#101114b8 55%,#070809e8),url('/asset/12.png') center/cover fixed no-repeat;filter:saturate(1.18) contrast(1.08)}.family-models-page:before{background:linear-gradient(180deg,#07080908,#0708097c)}.family-models-page .group-card{background:linear-gradient(145deg,#fffffffa,#fff5f6f5);box-shadow:0 14px 28px #0005,0 1px 0 #fff inset}.family-models-page .groups-toolbar{background:linear-gradient(120deg,#fffffffa,#fff4f6f5)}
+@media(max-width:700px){.nav-right{gap:4px}.date-picker{min-width:132px}.date-reset{display:none}.data-record-head{display:grid;gap:8px}.data-record-body{grid-template-columns:1fr 1fr}.data-record-body>div:last-child{grid-column:1/-1}.data-media img,.data-media video{width:150px;height:96px}}
+</style>
 </head>
 <body class="app-body">
 <header class="hero">
@@ -310,7 +315,10 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 <button data-page="inbox">Leader Inbox</button>
 <button id="cfmMenu" class="hidden" data-cfm-menu data-page="confirmation">Confirmation</button>
 <button data-page="settings">Family Models</button>
+<button data-page="data">Data</button>
 <div class="nav-right">
+<input id="dayPicker" class="date-select date-picker" type="date" aria-label="Filter date">
+<button id="allDatesBtn" class="btn date-reset" type="button">All dates</button>
 <select id="daySelect" class="date-select">
 <option value="all">All dates</option>
 </select>
@@ -479,6 +487,15 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 </div>
 <div id="confirmList" class="inbox-list">
 </div>
+</section>
+<section id="data" class="page hidden">
+<div class="top">
+<div>
+<h2>Closed Ticket Data</h2>
+<p>Archived tickets with leader evidence and final status.</p>
+</div>
+</div>
+<div id="dataList" class="data-list"></div>
 </section>
 <section id="settings" class="page hidden">
 <div class="top">
