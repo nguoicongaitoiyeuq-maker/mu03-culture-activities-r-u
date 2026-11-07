@@ -414,7 +414,16 @@ async def create_ticket(request: Request):
         conn.close()
         raise HTTPException(403, "You are not assigned to this family")
     family_owner, family_name = access["owner"], access["name"]
-    members = member_rows(conn, family_owner, family_name)
+    if family_name == "ALL MU03":
+        broadcast_families = ["Ban Văn Hóa", *[name for name in DEFAULT_FAMILIES if name != "ALL MU03"]]
+        placeholders = ",".join("?" for _ in broadcast_families)
+        members = conn.execute(
+            f"SELECT email, display_name, title, role, managed_by FROM family_members WHERE family_owner=? AND family_name IN ({placeholders}) ORDER BY role DESC, email",
+            (CULTURE_GROUP_OWNER, *broadcast_families),
+        ).fetchall()
+        family_owner = CULTURE_GROUP_OWNER
+    else:
+        members = member_rows(conn, family_owner, family_name)
     shifts = [row["email"] for row in members if row["role"] == "SHIFT_LEADER"]
     areas = [row["email"] for row in members if row["role"] == "AREA_LEADER"]
     recipients = [row["email"] for row in members]

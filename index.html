@@ -306,17 +306,28 @@ body{background:linear-gradient(180deg,#fff,#fff5f5 55%,#fff)}
 </script>
 <script src="/js/families.js">
 </script>
-<script src="/js/tickets.js?v=20261107-4">
+<script src="/js/tickets.js?v=20261107-5">
 </script>
 <script src="/js/menu.js?v=20261107-3">
 </script>
 <script src="/js/app.js">
 </script>
 <style>
-#create{position:relative;overflow:hidden;background:linear-gradient(90deg,#101114e8,#10111480),url('/asset/13.png') center/cover fixed no-repeat;padding:28px 26px 58px;border-radius:18px;box-shadow:inset 0 0 0 1px #ffffff18}
+#create{position:relative;overflow:hidden;background:linear-gradient(90deg,#101114e8,#10111480),url('/asset/13.png') center/cover fixed no-repeat;background-size:auto,118% auto;background-position:center,center 34%;padding:28px 26px 58px;border-radius:18px;box-shadow:inset 0 0 0 1px #ffffff18}
 #create:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#07080922,#070809b8);pointer-events:none}
 #create>*{position:relative;z-index:1}
-#create .top h2{color:#fff}
+#create .top h2{color:#fff;text-shadow:0 4px 16px #0008}
+#create .panel{background:#fffefdf2;backdrop-filter:blur(16px) saturate(1.1);-webkit-backdrop-filter:blur(16px) saturate(1.1);border-color:#ffffffd9;box-shadow:0 22px 50px #16020855;animation:ticketPanelIn .55s cubic-bezier(.2,.8,.2,1) both}
+#create .field{transition:transform .25s ease}
+#create .field:focus-within{transform:translateY(-2px)}
+#create .field input,#create .field textarea,#create .field select{transition:border-color .2s ease,box-shadow .2s ease,background-color .2s ease}
+#create .field input:hover,#create .field textarea:hover,#create .field select:hover{border-color:#c1121f88;background:#fff}
+#create .field select{appearance:none;cursor:pointer;padding-right:36px;background-image:linear-gradient(45deg,transparent 50%,#c1121f 50%),linear-gradient(135deg,#c1121f 50%,transparent 50%);background-position:calc(100% - 17px) 50%,calc(100% - 11px) 50%;background-size:6px 6px,6px 6px;background-repeat:no-repeat}
+#create .leader-actions .btn{transition:transform .2s ease,box-shadow .2s ease,filter .2s ease}
+#create .leader-actions .btn.primary{background:linear-gradient(135deg,#a30e1b,#ef233c);box-shadow:0 10px 22px #c1121f45}
+#create .leader-actions .btn:hover{transform:translateY(-3px);box-shadow:0 14px 28px #7a1e2930}
+@keyframes ticketPanelIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:700px){#create{background-size:auto,165% auto;background-position:center,center 28%;padding:22px 14px 42px}}
 </style>
 </body>
 </html>
