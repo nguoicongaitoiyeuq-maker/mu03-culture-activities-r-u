@@ -17,6 +17,7 @@ DB_PATH = Path(os.getenv("MU03_DATA_PATH", str(ROOT / "mu03_ru.sqlite3")))
 DEFAULT_FAMILIES = ["Gen 4", "Gen 5", "HTIW", "Grinder", "D&F", "Nailer", "Sub Line", "ALL MU03"]
 DEFAULT_LEADER = "Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)"
 ROLE_RANK = {"MEMBER": 1, "AREA_LEADER": 2, "SHIFT_LEADER": 3, "ADMIN": 4}
+SHIFT_CONFIRM_STATUSES = {"READ", "LINE SHARING COMPLETED", "NO LINE - COMPLETED"}
 CULTURE_GROUP_OWNER = "thanhdat.le2@ttigroup.com.vn"
 CULTURE_GROUP_MEMBERS = [
     ("thanhphat.duong@ttigroup.com.vn", "Dương Thành Phát", "Assistant Production Manager", "MEMBER", ""),
@@ -309,6 +310,8 @@ def highest_role(conn, user):
 def user_can_view(conn, row, user):
     if row["owner"] == user:
         return True
+    if str(row["shift_leader"] or "").strip().lower() == user.lower():
+        return True
     target_email = str(row["target_email"] or "").strip()
     if target_email:
         if target_email.lower() == user.lower():
@@ -342,7 +345,7 @@ def ticket_json(row, conn=None, user=None):
                 (item["family_owner"], target_email, target_family, target_family)).fetchone() if target_email else None
             if target_row and target_row["role"] == "AREA_LEADER":
                 is_area = is_target
-                is_shift = bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
+                is_shift = str(item.get("shift_leader") or "").lower() == user.lower() or (bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower())
             elif target_row and target_row["role"] == "SHIFT_LEADER":
                 is_shift = is_target
                 is_area = False
@@ -350,15 +353,15 @@ def ticket_json(row, conn=None, user=None):
                 is_shift = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='SHIFT_LEADER'", (user,)).fetchone() is not None
                 is_area = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='AREA_LEADER'", (user,)).fetchone() is not None
         else:
-            is_shift = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
+            is_shift = str(item.get("shift_leader") or "").lower() == user.lower() or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
             is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
         item["can_review"] = False
         reviewed_after_read = bool(item.get("reviewed_by")) and bool(item.get("reviewed_at")) and bool(item.get("read_at")) and item["reviewed_at"] >= item["read_at"]
-        item["can_confirm"] = is_target and is_shift and item["status"] == "READ" and reviewed_after_read and str(item.get("reviewed_by") or "").lower() == user.lower()
+        item["can_confirm"] = is_target and is_shift and item["status"] in SHIFT_CONFIRM_STATUSES and reviewed_after_read and str(item.get("reviewed_by") or "").lower() == user.lower()
         item["can_manage"] = is_target and is_area
         if item["family"] == "ALL MU03" and target_email and target_row and target_row["role"] == "AREA_LEADER":
             item["can_review"] = item["status"] == "READ" and bool(item.get("read_at")) and bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
-            item["can_confirm"] = item["can_review"] and reviewed_after_read and str(item.get("reviewed_by") or "").lower() == user.lower()
+            item["can_confirm"] = is_shift and item["status"] in SHIFT_CONFIRM_STATUSES and reviewed_after_read and str(item.get("reviewed_by") or "").lower() == user.lower()
             item["can_manage"] = is_target
         elif is_target and is_shift:
             item["can_review"] = item["status"] == "READ" and bool(item.get("read_at"))
@@ -434,8 +437,8 @@ def lookup_directory(email: str, request: Request):
 def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
     conn = db()
-    query = "SELECT * FROM tickets WHERE (owner=? OR (target_email<>'' AND (lower(target_email)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND lower(m.email)=lower(tickets.target_email) AND m.role='AREA_LEADER' AND lower(m.managed_by)=lower(?) AND (tickets.target_family='' OR m.family_name=tickets.target_family)))) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
-    args = [user, user, user, user]
+    query = "SELECT * FROM tickets WHERE (owner=? OR lower(shift_leader)=lower(?) OR (target_email<>'' AND (lower(target_email)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND lower(m.email)=lower(tickets.target_email) AND m.role='AREA_LEADER' AND lower(m.managed_by)=lower(?) AND (tickets.target_family='' OR m.family_name=tickets.target_family)))) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
+    args = [user, user, user, user, user]
     if day != "all":
         query += " AND day=?"
         args.append(day)
