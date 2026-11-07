@@ -339,6 +339,8 @@ body{background:linear-gradient(180deg,#fff,#fff5f5 55%,#fff)}
 #inbox .leader-card:hover{transform:translateY(-2px);box-shadow:0 20px 38px #7a1e2924}
 #inbox .ticket-header{padding:20px 24px;background:linear-gradient(120deg,#fff9f9,#fff);border-bottom:1px solid #f0dfe1}
 #inbox .ticket-header h3{font-size:22px;margin:4px 0 7px;color:#17191d}
+#inbox .ticket-assignee{display:inline-flex;margin-top:10px;padding:6px 9px;border-radius:8px;background:#fff0f1;color:#8a2430;font-size:12px;font-weight:700}
+#inbox .ticket-assignee b{margin-left:4px;color:#57111a;overflow-wrap:anywhere}
 #inbox .ticket-kicker{letter-spacing:.12em;color:#a30e1b}
 #inbox .ticket-details{margin:0;padding:22px 24px 24px}
 #inbox .ticket-content-block{padding:17px 18px;background:#fffafa;border:1px solid #f0dfe1;border-radius:12px}
@@ -348,6 +350,18 @@ body{background:linear-gradient(180deg,#fff,#fff5f5 55%,#fff)}
 #inbox .ticket-fact{background:#fff;border-color:#f0e1e3}
 #inbox .ticket-evidence{margin-top:16px;padding-top:16px;border-top:1px solid #f0dfe1}
 #inbox .leader-media{margin:10px 0 0}
+#inbox .media-tile{position:relative;display:flex;flex-direction:column;gap:5px;width:190px;padding:0;border:1px solid #ead2d5;border-radius:10px;background:#fff;overflow:hidden;color:#6b7280;font:inherit;text-align:left;cursor:pointer}
+#inbox .media-tile img,#inbox .media-tile video{display:block;width:190px;height:120px;object-fit:cover;border:0;border-radius:0}
+#inbox .media-tile span{padding:0 8px 8px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#inbox .media-open-button{position:absolute;right:8px;top:8px;border:0;border-radius:999px;padding:5px 8px;background:#17191dcc;color:#fff;font-size:10px;font-weight:900;cursor:pointer}
+#inbox .media-image-tile:hover,#inbox .media-video-tile:hover{border-color:#c1121f;box-shadow:0 8px 18px #7a1e2924;transform:translateY(-2px)}
+#ticketMediaViewer{display:none;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;padding:28px;background:#08090dcc;backdrop-filter:blur(8px)}
+#ticketMediaViewer.open{display:flex}
+.ticket-media-viewer-panel{position:relative;max-width:min(92vw,1100px);max-height:92vh;padding:18px;border:1px solid #ffffff38;border-radius:16px;background:#17191df2;box-shadow:0 24px 70px #0009}
+.ticket-media-viewer-content{display:grid;place-items:center;max-width:calc(min(92vw,1100px) - 36px);max-height:calc(92vh - 72px)}
+.ticket-media-viewer-content img,.ticket-media-viewer-content video{display:block;max-width:100%;max-height:calc(92vh - 120px);object-fit:contain;border-radius:10px}
+.ticket-media-close{position:absolute;right:10px;top:8px;z-index:1;width:32px;height:32px;border:0;border-radius:50%;background:#ffffff22;color:#fff;font-size:24px;line-height:1;cursor:pointer}
+.ticket-media-viewer-name{margin-top:10px;color:#fff;font-size:12px;text-align:center;overflow-wrap:anywhere}
 #inbox .workflow-step{padding:18px;margin-top:18px;border:1px solid #ecc9ce;border-radius:13px;background:linear-gradient(135deg,#fff7f7,#fff);box-shadow:0 8px 18px #7a1e2910}
 #inbox .workflow-note{margin-top:18px;padding:13px 15px;border:1px dashed #d9a3aa;border-radius:11px;background:#fff8f8;color:#7a1e29;font-size:13px;font-weight:700}
 #inbox .step-label{margin-bottom:12px;color:#7a1e29}

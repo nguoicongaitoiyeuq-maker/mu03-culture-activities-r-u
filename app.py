@@ -500,6 +500,9 @@ async def update_ticket(ticket_id: str, request: Request):
     if status in ("SHIFT LEADER CONFIRMED", "SHIFT LEADER REJECTED") and not current.get("can_confirm"):
         conn.close()
         raise HTTPException(403, "Only the assigned shift leader can confirm this ticket")
+    if status in ("SHIFT LEADER CONFIRMED", "SHIFT LEADER REJECTED") and (row["status"] != "READ" or not row["read_at"]):
+        conn.close()
+        raise HTTPException(409, "The assigned leader must read and update this ticket first")
     if status in ("LINE SHARING COMPLETED", "NO LINE - COMPLETED") and not current.get("can_manage"):
         conn.close()
         raise HTTPException(403, "Only the area leader can manage this ticket")
