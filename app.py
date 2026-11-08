@@ -457,10 +457,14 @@ def list_tickets(request: Request, day: str = "all"):
 
 @app.get("/api/dashboard/tickets")
 def dashboard_ticket_feed(request: Request):
-    user = user_email(request)
     conn = db()
     rows = conn.execute("SELECT * FROM tickets ORDER BY sent_at DESC").fetchall()
-    result = [ticket_json(row, conn, user) for row in rows]
+    result = []
+    for row in rows:
+        item = dict(row)
+        item["media"] = json.loads(item.pop("media_json") or "[]")
+        item["recipients"] = json.loads(item.pop("recipient_emails", "[]") or "[]")
+        result.append(item)
     conn.close()
     return result
 
