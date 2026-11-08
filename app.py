@@ -691,7 +691,12 @@ def read_sharepoint_tickets():
             payload = json.loads(response.read().decode("utf-8"))
     except Exception:
         return None
-    entries = payload if isinstance(payload, list) else (payload.get("value") or payload.get("items") or [])
+    if isinstance(payload, list):
+        entries = payload
+    elif isinstance(payload, dict) and ("value" in payload or "items" in payload):
+        entries = payload.get("value") or payload.get("items") or []
+    else:
+        return None
     result = []
     for entry in entries:
         fields = entry.get("fields") or entry
@@ -723,7 +728,6 @@ def read_sharepoint_tickets():
 
 
 def sync_sharepoint_cache(conn, shared):
-    shared_ids = {str(item.get("id") or "") for item in shared}
     for item in shared:
         media = item.get("media") or []
         existing = conn.execute("SELECT media_json FROM tickets WHERE id=?", (item.get("id", ""),)).fetchone()
@@ -750,11 +754,9 @@ def sync_sharepoint_cache(conn, shared):
             conn.execute("UPDATE tickets SET owner=:owner,day=:day,title=:title,family=:family,content=:content,leader=:leader,status=:status,line_id=:line_id,media_json=:media_json,sent_at=:sent_at,closed_at=:closed_at,family_owner=:family_owner,shift_leader=:shift_leader,area_leader=:area_leader,recipient_emails=:recipient_emails,target_email=:target_email,target_family=:target_family,work_shift=:work_shift,sharepoint_item_id=:sharepoint_item_id WHERE id=:id", ticket)
         else:
             conn.execute("INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email,target_family,work_shift,sharepoint_item_id) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email,:target_family,:work_shift,:sharepoint_item_id)", ticket)
-    if shared_ids:
-        placeholders = ",".join("?" for _ in shared_ids)
-        conn.execute(f"DELETE FROM tickets WHERE id NOT IN ({placeholders})", tuple(shared_ids))
-    else:
-        conn.execute("DELETE FROM tickets")
+    # Never delete local records because a SharePoint read can be partial or
+    # temporarily empty while the flow is running. The next successful read
+    # will refresh matching records without making older tickets disappear.
     conn.commit()
 
 
@@ -782,7 +784,9 @@ def list_tickets(request: Request, day: str = "all"):
 def dashboard_ticket_feed(request: Request):
     shared = read_sharepoint_tickets()
     if shared is not None:
-        return [dict(item, media=add_media_previews(item.get("media") or [])) for item in shared]
+        cache = db()
+        sync_sharepoint_cache(cache, shared)
+        cache.close()
     conn = db()
     rows = conn.execute("SELECT * FROM tickets ORDER BY sent_at DESC").fetchall()
     result = []
