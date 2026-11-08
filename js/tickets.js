@@ -93,7 +93,7 @@ async function createTicket() {
   ticketSubmitting = true;
   if (button) { button.disabled = true; button.textContent = 'SENDING...'; }
   try {
-    const result = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, cause: 'General', media: state.media }) });
+    const result = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, work_shift: shift.value, cause: 'General', media: state.media }) });
     const ticket = result.tickets?.[0] || result;
     const sentCount = Number(result.count || 1);
     clearForm();
@@ -110,6 +110,7 @@ function clearForm() {
   setAccountEmail(state.user);
   state.media = [];
   mediaPreview.innerHTML = '';
+  if (typeof shift !== 'undefined') shift.value = '';
 }
 
 function patch(id, payload) {

@@ -22,8 +22,9 @@ function renderKpisLegacy() {
 }
 
 function formatSla(ticket) {
+  if (ticket.status === 'CLOSED') return '<span class="timeline done">DONE</span>';
   const left = 86400000 - (Date.now() - new Date(ticket.sent_at).getTime());
-  if (left <= 0) return `<span class="timeline overdue">OVERDUE ${Math.floor(Math.abs(left) / 3600000)}h</span>`;
+  if (left <= 0) return '<span class="timeline fail">FAIL</span>';
   const hours = Math.floor(left / 3600000);
   const minutes = Math.floor(left % 3600000 / 60000);
   const seconds = Math.floor(left % 60000 / 1000);
@@ -71,7 +72,7 @@ function renderGroupCharts() {
   const definitions = {
     sent: (ticket) => Boolean(ticket.id),
     pending: (ticket) => ticket.status !== 'CLOSED' && !ticket.status.includes('COMPLETED'),
-    cfm: (ticket) => ticket.status === 'SHIFT LEADER CONFIRMED',
+    cfm: (ticket) => ticket.status !== 'CLOSED' && Date.now() - new Date(ticket.sent_at).getTime() >= 86400000,
     closed: (ticket) => ticket.status === 'CLOSED'
   };
   Object.entries(definitions).forEach(([key, matches]) => {
@@ -104,12 +105,12 @@ function renderRows() {
 function renderData() {
   const list = document.getElementById('dataList');
   if (!list) return;
-  const items = state.tickets.filter((ticket) => ticket.status === 'CLOSED' && (state.day === 'all' || ticket.day === state.day));
+  const items = state.tickets.filter((ticket) => state.day === 'all' || ticket.day === state.day);
   list.innerHTML = items.length ? items.map((ticket) => {
     const media = (ticket.media || []).map((item) => item.type?.startsWith('video')
       ? `<video controls preload="metadata" src="${item.data}" aria-label="${esc(item.name)}"></video>`
       : `<img src="${item.data}" alt="${esc(item.name)}">`).join('');
-    return `<article class="data-record"><div class="data-record-head"><div><span class="data-kicker">Closed ticket</span><h3>${esc(ticket.title)}</h3><p>${esc(ticket.id)} · ${esc(ticket.target_family || ticket.family)} · ${esc(ticket.line_id || 'No line')}</p></div><time>${new Date(ticket.closed_at || ticket.sent_at).toLocaleString('vi-VN')}</time></div><div class="data-record-body"><div><strong>Leader</strong><span>${esc(leaderName(ticket.leader))}</span></div><div><strong>Status</strong><span>${badge(ticket.status)}</span></div><div><strong>Content</strong><p>${esc(ticket.content)}</p></div></div>${media ? `<div class="data-media">${media}</div>` : '<div class="data-no-media">No evidence attached.</div>'}</article>`;
+    return `<article class="data-record"><div class="data-record-head"><div><span class="data-kicker">${esc(ticket.status)}</span><h3>${esc(ticket.title)}</h3><p>${esc(ticket.id)} · ${esc(ticket.target_family || ticket.family)} · ${esc(ticket.line_id || 'No line')}</p></div><time>${new Date(ticket.sent_at).toLocaleString('vi-VN')}</time></div><div class="data-record-body"><div><strong>Leader</strong><span>${esc(leaderName(ticket.leader))}</span></div><div><strong>Status</strong><span>${badge(ticket.status)}</span></div><div><strong>Content</strong><p>${esc(ticket.content)}</p></div></div>${media ? `<div class="data-media">${media}</div>` : '<div class="data-no-media">No evidence attached.</div>'}</article>`;
   }).join('') : '<div class="data-empty">No closed tickets for this date.</div>';
 }
 

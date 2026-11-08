@@ -19,6 +19,11 @@ document.getElementById('allDatesBtn')?.addEventListener('click', () => {
   renderAll();
 });
 
+document.getElementById('dataExportBtn')?.addEventListener('click', () => {
+  const day = encodeURIComponent(state.day || 'all');
+  window.location.href = `/api/tickets/export?day=${day}`;
+});
+
 let galleryIndex = 0;
 setInterval(() => {
   const track = document.getElementById('galleryTrack');
