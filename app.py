@@ -472,6 +472,26 @@ def schedule_ticket_side_effects(ticket, status):
     ).start()
 
 
+def sync_created_ticket_side_effects(ticket):
+    sharepoint_id = sharepoint_create_ticket(ticket)
+    if sharepoint_id:
+        mirror = db()
+        mirror.execute("UPDATE tickets SET sharepoint_item_id=? WHERE id=?", (sharepoint_id, ticket["id"]))
+        mirror.commit()
+        mirror.close()
+    notify_power_automate(ticket)
+    notify_teams(ticket, "New ticket")
+
+
+def schedule_created_ticket_side_effects(ticket):
+    threading.Thread(
+        target=sync_created_ticket_side_effects,
+        args=(ticket,),
+        daemon=True,
+        name="mu03-ticket-create-sync",
+    ).start()
+
+
 def notify_power_automate(ticket):
     if not MU03_FLOW_HTTP_URL:
         return
@@ -922,15 +942,7 @@ async def create_ticket(request: Request):
     conn.commit()
     conn.close()
     for result in results:
-        sharepoint_id = sharepoint_create_ticket(result)
-        if sharepoint_id:
-            result["sharepoint_item_id"] = sharepoint_id
-            mirror = db()
-            mirror.execute("UPDATE tickets SET sharepoint_item_id=? WHERE id=?", (sharepoint_id, result["id"]))
-            mirror.commit()
-            mirror.close()
-        notify_power_automate(result)
-        notify_teams(result, "New ticket")
+        schedule_created_ticket_side_effects(result)
     return results[0] if len(results) == 1 else {"broadcast": True, "count": len(results), "tickets": results}
 
 
