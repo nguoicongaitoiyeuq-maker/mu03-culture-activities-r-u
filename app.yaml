@@ -5,3 +5,6 @@ command:
   - 0.0.0.0
   - --port
   - "8000"
+env:
+  - name: MU03_FLOW_HTTP_URL
+    value: "https://default8b8cc6cf0eaa4b6498e46d4672c449.30.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/94b5f4635c48493582c899e7bc7126e0/triggers/manual/paths/invoke?api-version=1"
