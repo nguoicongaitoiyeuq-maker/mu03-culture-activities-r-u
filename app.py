@@ -760,14 +760,27 @@ def sync_sharepoint_cache(conn, shared):
     conn.commit()
 
 
+def refresh_sharepoint_cache():
+    shared = read_sharepoint_tickets()
+    if shared is None:
+        return
+    cache = db()
+    sync_sharepoint_cache(cache, shared)
+    cache.close()
+
+
+def schedule_sharepoint_cache_refresh():
+    threading.Thread(
+        target=refresh_sharepoint_cache,
+        daemon=True,
+        name="mu03-sharepoint-read-sync",
+    ).start()
+
+
 @app.get("/api/tickets")
 def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
-    shared = read_sharepoint_tickets()
-    if shared is not None:
-        cache = db()
-        sync_sharepoint_cache(cache, shared)
-        cache.close()
+    schedule_sharepoint_cache_refresh()
     conn = db()
     query = "SELECT * FROM tickets WHERE (owner=? OR lower(shift_leader)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?) AND m.role='SHIFT_LEADER') OR (target_email<>'' AND (lower(target_email)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND lower(m.email)=lower(tickets.target_email) AND m.role='AREA_LEADER' AND lower(m.managed_by)=lower(?) AND (tickets.target_family='' OR m.family_name=tickets.target_family)))) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
     args = [user, user, user, user, user, user]
@@ -782,11 +795,7 @@ def list_tickets(request: Request, day: str = "all"):
 
 @app.get("/api/dashboard/tickets")
 def dashboard_ticket_feed(request: Request):
-    shared = read_sharepoint_tickets()
-    if shared is not None:
-        cache = db()
-        sync_sharepoint_cache(cache, shared)
-        cache.close()
+    schedule_sharepoint_cache_refresh()
     conn = db()
     rows = conn.execute("SELECT * FROM tickets ORDER BY sent_at DESC").fetchall()
     result = []
