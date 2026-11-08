@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import base64
 from io import BytesIO
 import json
+import logging
 import os
 import csv
 import sqlite3
@@ -13,7 +14,7 @@ from urllib.parse import quote
 from urllib.request import Request as UrlRequest, urlopen
 from zoneinfo import ZoneInfo
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from starlette.background import BackgroundTask
 from openpyxl import Workbook
@@ -150,6 +151,7 @@ SUBLINE_LEADERS = [
     ("tranvuduy.hoang@ttigroup.com.vn", "Hoàng Trần Vũ Duy", "Acting Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
 ]
 app = FastAPI(title="MU03 Production Communication")
+LOGGER = logging.getLogger("mu03")
 SCHEMA_LOCK = threading.Lock()
 SCHEMA_READY = False
 DIRECTORY = {}
@@ -422,6 +424,22 @@ def notify_teams(ticket, event):
         pass
 
 
+def sync_ticket_side_effects(ticket, status):
+    notify_power_automate_update(ticket)
+    sharepoint_update_ticket(ticket)
+    if status:
+        notify_teams(ticket, f"Ticket status changed to {status}")
+
+
+def schedule_ticket_side_effects(ticket, status):
+    threading.Thread(
+        target=sync_ticket_side_effects,
+        args=(ticket, status),
+        daemon=True,
+        name="mu03-ticket-sync",
+    ).start()
+
+
 def notify_power_automate(ticket):
     if not MU03_FLOW_HTTP_URL:
         return
@@ -465,8 +483,8 @@ def notify_power_automate_update(ticket):
         request = UrlRequest(MU03_UPDATE_FLOW_HTTP_URL, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
         with urlopen(request, timeout=8):
             pass
-    except Exception:
-        pass
+    except Exception as error:
+        LOGGER.warning("Power Automate update failed for %s: %s", ticket.get("id", ""), error)
 
 
 def sharepoint_token():
@@ -835,7 +853,7 @@ async def create_ticket(request: Request):
 
 
 @app.patch("/api/tickets/{ticket_id}")
-async def update_ticket(ticket_id: str, request: Request, background_tasks: BackgroundTasks):
+async def update_ticket(ticket_id: str, request: Request):
     payload = await request.json()
     user = user_email(request)
     conn = db()
@@ -898,12 +916,9 @@ async def update_ticket(ticket_id: str, request: Request, background_tasks: Back
     updated = conn.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
     result = ticket_json(updated, conn, user)
     conn.close()
-    # Return the local update immediately. Remote SharePoint/flow calls can be slow
-    # or unavailable, and must not leave the workflow button waiting indefinitely.
-    background_tasks.add_task(sharepoint_update_ticket, result)
-    background_tasks.add_task(notify_power_automate_update, result)
-    if status:
-        background_tasks.add_task(notify_teams, result, f"Ticket status changed to {status}")
+    # Keep external systems off the request path while ensuring the sync thread starts
+    # before the response is returned to the browser.
+    schedule_ticket_side_effects(result, status)
     return result
 
 
