@@ -29,6 +29,8 @@ DEFAULT_LEADER = "Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)"
 ROLE_RANK = {"MEMBER": 1, "AREA_LEADER": 2, "SHIFT_LEADER": 3, "ADMIN": 4}
 SHIFT_CONFIRM_STATUSES = {"READ", "LINE SHARING COMPLETED", "NO LINE - COMPLETED"}
 CULTURE_GROUP_OWNER = "thanhdat.le2@ttigroup.com.vn"
+CULTURE_GROUP_NAME = "Core Teams"
+LEGACY_CULTURE_GROUP_NAME = "Ban Văn Hóa"
 CULTURE_GROUP_MEMBERS = [
     ("thanhphat.duong@ttigroup.com.vn", "Dương Thành Phát", "Assistant Production Manager", "MEMBER", ""),
     ("trunghieu.ho@ttigroup.com.vn", "Hồ Trung Hiếu", "Production Supervisor", "MEMBER", ""),
@@ -39,6 +41,8 @@ CULTURE_GROUP_MEMBERS = [
     ("minhquan.pham1@ttigroup.com.vn", "Phạm Minh Quân", "Senior Production Supervisor", "MEMBER", ""),
     ("hailam.hoang@ttigroup.com.vn", "Hoàng Hải Lâm", "Senior Production Supervisor", "MEMBER", ""),
     ("thanhdat.le2@ttigroup.com.vn", "Lê Thành Đạt", "Acting Line Leader", "AREA_LEADER", ""),
+    ("hongthai.vu@ttigroup.com.vn", "Vũ Hồng Thái", "Production Manager", "SHIFT_LEADER", ""),
+    ("khachieu.nguyen01@ttigroup.com.vn", "Brian Nguyễn Khắc Hiểu", "Senior Manufacturing Manager", "SHIFT_LEADER", ""),
 ]
 ASSETS = {"1.jpg": "image/jpeg", "4.webp": "image/webp", "6.jpg": "image/jpeg", "8.jpg": "image/jpeg", "10.jpg": "image/jpeg", "12.png": "image/png", "13.png": "image/png", "15.png": "image/png", "16.jpg": "image/jpeg", "17.webp": "image/webp", "snaptik.vn_7616226358024310033.mp4": "video/mp4"}
 HTIW_LEADERS = [
@@ -260,11 +264,15 @@ def directory_lookup(request, email):
 
 
 def ensure_families(conn, user):
-    conn.execute("INSERT OR IGNORE INTO families(owner,name,created_at) VALUES(?,?,?)", (CULTURE_GROUP_OWNER, "Ban Văn Hóa", now_iso()))
+    conn.execute("UPDATE families SET name=? WHERE owner=? AND name=?", (CULTURE_GROUP_NAME, CULTURE_GROUP_OWNER, LEGACY_CULTURE_GROUP_NAME))
+    conn.execute("UPDATE family_members SET family_name=? WHERE family_owner=? AND family_name=?", (CULTURE_GROUP_NAME, CULTURE_GROUP_OWNER, LEGACY_CULTURE_GROUP_NAME))
+    conn.execute("UPDATE tickets SET family=? WHERE family=?", (CULTURE_GROUP_NAME, LEGACY_CULTURE_GROUP_NAME))
+    conn.execute("UPDATE tickets SET target_family=? WHERE target_family=?", (CULTURE_GROUP_NAME, LEGACY_CULTURE_GROUP_NAME))
+    conn.execute("INSERT OR IGNORE INTO families(owner,name,created_at) VALUES(?,?,?)", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, now_iso()))
     for email, display_name, title, role, managed_by in CULTURE_GROUP_MEMBERS:
         conn.execute(
             "INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)",
-            (CULTURE_GROUP_OWNER, "Ban Văn Hóa", email, display_name, title, role, managed_by, now_iso()),
+            (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, email, display_name, title, role, managed_by, now_iso()),
         )
     for name in DEFAULT_FAMILIES:
         conn.execute("INSERT OR IGNORE INTO families(owner,name,created_at) VALUES(?,?,?)", (CULTURE_GROUP_OWNER, name, now_iso()))
@@ -306,7 +314,7 @@ def family_access(conn, user, name):
     if name == "ALL MU03":
         row = conn.execute("SELECT * FROM families WHERE name=? ORDER BY created_at LIMIT 1", (name,)).fetchone()
         return (row, "ALL") if row else (None, None)
-    if conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name='Ban Văn Hóa' AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, user)).fetchone():
+    if conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, user)).fetchone():
         shared = family_row(conn, CULTURE_GROUP_OWNER, name)
         if shared:
             return shared, "VIEWER"
@@ -437,7 +445,7 @@ def session(request: Request):
         role in ("SHIFT_LEADER", "ADMIN")
         or user in {member[0] for member in CULTURE_GROUP_MEMBERS}
         or conn.execute("SELECT 1 FROM family_members WHERE lower(email)=lower(?) AND role='SHIFT_LEADER' LIMIT 1", (user,)).fetchone() is not None
-        or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name='Ban Văn Hóa' AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, user)).fetchone() is not None
+        or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, user)).fetchone() is not None
     )
     conn.close()
     profile = directory_lookup(request, user)
@@ -554,7 +562,7 @@ async def create_ticket(request: Request):
     payload = await request.json()
     user = user_email(request)
     if user not in {member[0] for member in CULTURE_GROUP_MEMBERS}:
-        raise HTTPException(403, "Only the Ban Văn Hóa members can create tickets")
+        raise HTTPException(403, "Only Core Teams members can create tickets")
     if any(not str(payload.get(key, "")).strip() for key in ("title", "family", "content")):
         raise HTTPException(400, "Title, family and content are required")
     work_shift = ""
@@ -678,7 +686,7 @@ def list_families(request: Request):
     user = user_email(request)
     conn = db()
     ensure_families(conn, user)
-    is_culture_member = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name='Ban Văn Hóa' AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, user)).fetchone()
+    is_culture_member = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, user)).fetchone()
     if is_culture_member:
         rows = conn.execute("SELECT DISTINCT name FROM families WHERE owner=? ORDER BY created_at", (CULTURE_GROUP_OWNER,)).fetchall()
     else:
