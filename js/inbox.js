@@ -150,13 +150,6 @@ function renderConfirm() {
   confirmList.innerHTML = items.length ? items.map((ticket) => `<article class="leader-card"><h3>${esc(ticket.title)}</h3><div class="meta">${esc(ticket.id)} · ${esc(ticket.family)} · Shift: ${esc(ticket.work_shift || '—')} · ${badge(ticket.status)}</div><div class="leader-content">${esc(ticket.content)}</div><div class="leader-actions"><button class="btn green" onclick="closeTicket('${ticket.id}')">CONFIRM & CLOSE</button></div></article>`).join('') : '<div class="panel empty">Nothing is waiting for confirmation.</div>';
 }
 
-setInterval(() => {
-  const inboxPage = document.getElementById('inbox');
-  if (typeof load === 'function' && inboxPage && !inboxPage.classList.contains('hidden') && !Object.values(workflowSubmitting).some(Boolean) && !hasActiveLineDraft()) {
-    load().catch(() => {});
-  }
-}, 10000);
-
 let workflowSubmitting = {};
 let viewedTickets = {};
 
