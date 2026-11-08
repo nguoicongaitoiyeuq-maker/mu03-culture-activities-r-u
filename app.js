@@ -3,8 +3,6 @@ const clearDateBtn = document.getElementById('clearDateBtn');
 
 function updateDateFilterUI() {
   const active = state.day && state.day !== 'all';
-  const status = document.getElementById('dateFilterState');
-  if (status) status.textContent = active ? state.day.split('-').reverse().join('/') : 'Any date';
   if (dayPicker) dayPicker.value = active ? state.day : '';
   if (clearDateBtn) clearDateBtn.disabled = !active;
 }
