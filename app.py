@@ -659,12 +659,21 @@ def read_sharepoint_tickets():
 def sync_sharepoint_cache(conn, shared):
     shared_ids = {str(item.get("id") or "") for item in shared}
     for item in shared:
+        media = item.get("media") or []
+        existing = conn.execute("SELECT media_json FROM tickets WHERE id=?", (item.get("id", ""),)).fetchone()
+        if existing and media:
+            try:
+                cached_media = json.loads(existing["media_json"] or "[]")
+                cached_by_name = {str(entry.get("name")): entry for entry in cached_media if entry.get("data")}
+                media = [{**entry, "data": entry.get("data") or cached_by_name.get(str(entry.get("name")), {}).get("data", "")} for entry in media]
+            except (TypeError, ValueError):
+                pass
         ticket = {
             "id": item.get("id", ""), "owner": item.get("owner", ""), "day": item.get("day", ""),
             "title": item.get("title", ""), "family": item.get("family", ""), "content": item.get("content", ""),
             "cause": "General", "department": item.get("owner", ""), "leader": item.get("leader", ""),
             "status": item.get("status", ""), "line_id": item.get("line_id", ""), "note": "",
-            "media_json": json.dumps(item.get("media") or [], ensure_ascii=False), "sent_at": item.get("sent_at", ""),
+            "media_json": json.dumps(media, ensure_ascii=False), "sent_at": item.get("sent_at", ""),
             "read_at": None, "closed_at": item.get("closed_at"), "family_owner": CULTURE_GROUP_OWNER,
             "shift_leader": item.get("shift_leader", ""), "area_leader": item.get("area_leader") or item.get("leader", ""),
             "recipient_emails": json.dumps(item.get("recipients") or [], ensure_ascii=False), "target_email": item.get("target_email") or item.get("leader", ""),
@@ -727,6 +736,28 @@ def remove_export(path):
         pass
 
 
+def excel_image_from_media(media):
+    data = str(media.get("data") or "")
+    if not data.startswith("data:") or "," not in data:
+        return None
+    try:
+        raw = base64.b64decode(data.split(",", 1)[1])
+        try:
+            return ExcelImage(BytesIO(raw))
+        except Exception:
+            from PIL import Image
+            if str(media.get("name") or "").lower().endswith((".heic", ".heif", ".heics", ".heix")):
+                from pillow_heif import register_heif_opener
+                register_heif_opener()
+            source = Image.open(BytesIO(raw)).convert("RGB")
+            output = BytesIO()
+            source.save(output, format="PNG")
+            output.seek(0)
+            return ExcelImage(output)
+    except Exception:
+        return None
+
+
 @app.get("/api/tickets/export")
 def export_tickets(request: Request, day: str = "all"):
     user = user_email(request)
@@ -772,16 +803,14 @@ def export_tickets(request: Request, day: str = "all"):
             evidence.append([item.get("id", ""), item.get("target_family") or item.get("family", ""), entry.get("name", ""), entry.get("type", ""), ""])
             evidence_row = evidence.max_row
             evidence.cell(evidence_row, 1).alignment = Alignment(vertical="top")
-            data = str(entry.get("data", ""))
-            if data.startswith("data:image/") and "," in data:
-                try:
-                    image = ExcelImage(BytesIO(base64.b64decode(data.split(",", 1)[1])))
-                    image.width = 180
-                    image.height = 110
-                    evidence.add_image(image, f"E{evidence_row}")
-                    evidence.row_dimensions[evidence_row].height = 86
-                except Exception:
-                    pass
+            image = excel_image_from_media(entry)
+            if image:
+                image.width = 180
+                image.height = 110
+                evidence.add_image(image, f"E{evidence_row}")
+                evidence.row_dimensions[evidence_row].height = 86
+            else:
+                evidence.cell(evidence_row, 5).value = "Preview unavailable; open the ticket to view the original media."
     sheet.auto_filter.ref = sheet.dimensions
     evidence.auto_filter.ref = evidence.dimensions
     export_path = os.path.join(tempfile.gettempdir(), f"mu03-ticket-data-{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx")
