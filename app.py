@@ -668,7 +668,7 @@ def session(request: Request):
         or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, user)).fetchone() is not None
     )
     conn.close()
-    schedule_sharepoint_cache_refresh()
+    threading.Timer(3.0, schedule_sharepoint_cache_refresh).start()
     directory_profile = load_directory().get(user)
     display_name = directory_profile["display_name"] if directory_profile else ""
     if not display_name:
