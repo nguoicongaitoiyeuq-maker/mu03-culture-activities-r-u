@@ -653,6 +653,14 @@ body.app-body{font-synthesis:none}
 </style>
 <style id="tracking-3d-family">
 #dashboard .table-panel table{min-width:980px}
+#dashboard .table-panel{display:flex;flex-direction:column;min-height:0}
+#dashboard .table-panel .table-wrap{max-height:min(62vh,720px);overflow:auto;overscroll-behavior:contain;border-radius:12px;scrollbar-width:thin;scrollbar-color:#b11228 #f7e9ec}
+#dashboard .table-panel .table-wrap::-webkit-scrollbar{width:10px;height:10px}
+#dashboard .table-panel .table-wrap::-webkit-scrollbar-track{background:#f7e9ec;border-radius:999px}
+#dashboard .table-panel .table-wrap::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#ef233c,#8b0b1a);border-radius:999px;border:2px solid #f7e9ec}
+#dashboard .table-panel table{border-collapse:separate;border-spacing:0}
+#dashboard .table-panel thead{position:sticky;top:0;z-index:5}
+#dashboard .table-panel thead th{position:sticky;top:0;background:linear-gradient(145deg,#fff8fa,#f8dfe4);box-shadow:0 6px 0 #d9aeb5,0 12px 18px #6e0b1b25,inset 0 1px 0 #fff;transform:translateZ(14px);white-space:nowrap}
 #dashboard .table-panel tbody tr{transform:translateZ(0);transition:transform .25s ease,box-shadow .25s ease}
 #dashboard .table-panel tbody tr:hover{transform:translateY(-3px) translateZ(8px);box-shadow:0 10px 18px #7a1e2918}
 .tracking-id,.tracking-title,.tracking-person,.tracking-line,.tracking-shift,.tracking-family{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border-radius:8px;box-shadow:0 3px 0 #c7aab0,0 5px 10px #0002,inset 0 1px 0 #fff9;font-weight:800;line-height:1.2}
