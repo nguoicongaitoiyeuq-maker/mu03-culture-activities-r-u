@@ -454,6 +454,16 @@ def list_tickets(request: Request, day: str = "all"):
     return result
 
 
+@app.get("/api/dashboard/tickets")
+def dashboard_ticket_feed(request: Request):
+    user = user_email(request)
+    conn = db()
+    rows = conn.execute("SELECT * FROM tickets ORDER BY sent_at DESC").fetchall()
+    result = [ticket_json(row, conn, user) for row in rows]
+    conn.close()
+    return result
+
+
 def remove_export(path):
     try:
         os.unlink(path)
