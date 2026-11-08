@@ -10,7 +10,7 @@ function renderAll() {
   refreshSla();
 }
 
-function applyState(session, tickets, familiesList) {
+function applyState(session, tickets, familiesList, dashboardTickets) {
   state.user = session.user;
   state.displayName = session.display_name || session.user;
   state.today = session.today;
@@ -20,6 +20,7 @@ function applyState(session, tickets, familiesList) {
   state.canViewData = session.can_view_data === true;
   state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
+  state.dashboardTickets = dashboardTickets ?? tickets;
   state.families = familiesList;
   userPill.textContent = state.displayName;
   document.querySelectorAll('[data-page="create"], [data-new-ticket]').forEach((element) => element.classList.toggle('hidden', !state.canCreateTicket));
@@ -58,13 +59,14 @@ function load() {
   if (window.__BOOTSTRAP__ && !bootstrapUsed) {
     bootstrapUsed = true;
     const boot = window.__BOOTSTRAP__;
-    applyState(boot, boot.tickets || [], boot.families || []);
+    applyState(boot, boot.tickets || [], boot.families || [], boot.dashboard_tickets || boot.tickets || []);
     return Promise.resolve();
   }
-  return Promise.allSettled([api('/api/session'), api('/api/tickets'), api('/api/families')]).then((results) => {
+  return Promise.allSettled([api('/api/session'), api('/api/tickets'), api('/api/families'), api('/api/dashboard/tickets')]).then((results) => {
     const sessionResult = results[0];
     if (sessionResult.status !== 'fulfilled') throw sessionResult.reason;
-    applyState(sessionResult.value, results[1].status === 'fulfilled' ? results[1].value : [], results[2].status === 'fulfilled' ? results[2].value : []);
+    const tickets = results[1].status === 'fulfilled' ? results[1].value : [];
+    applyState(sessionResult.value, tickets, results[2].status === 'fulfilled' ? results[2].value : [], results[3].status === 'fulfilled' ? results[3].value : tickets);
   });
 }
 
