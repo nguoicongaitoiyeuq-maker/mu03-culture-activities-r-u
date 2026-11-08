@@ -9,6 +9,7 @@ import sqlite3
 import shutil
 import tempfile
 import threading
+import time
 from pathlib import Path
 from urllib.parse import quote
 from urllib.request import Request as UrlRequest, urlopen
@@ -155,6 +156,9 @@ LOGGER = logging.getLogger("mu03")
 SCHEMA_LOCK = threading.Lock()
 SCHEMA_READY = False
 DIRECTORY = {}
+SHAREPOINT_REFRESH_LOCK = threading.Lock()
+SHAREPOINT_REFRESH_RUNNING = False
+SHAREPOINT_REFRESH_LAST_STARTED = 0.0
 
 
 def prepare_db_path():
@@ -761,15 +765,26 @@ def sync_sharepoint_cache(conn, shared):
 
 
 def refresh_sharepoint_cache():
+    global SHAREPOINT_REFRESH_RUNNING, SHAREPOINT_REFRESH_LAST_STARTED
     shared = read_sharepoint_tickets()
-    if shared is None:
-        return
-    cache = db()
-    sync_sharepoint_cache(cache, shared)
-    cache.close()
+    try:
+        if shared is not None:
+            cache = db()
+            sync_sharepoint_cache(cache, shared)
+            cache.close()
+    finally:
+        with SHAREPOINT_REFRESH_LOCK:
+            SHAREPOINT_REFRESH_RUNNING = False
 
 
 def schedule_sharepoint_cache_refresh():
+    global SHAREPOINT_REFRESH_RUNNING, SHAREPOINT_REFRESH_LAST_STARTED
+    now = time.monotonic()
+    with SHAREPOINT_REFRESH_LOCK:
+        if SHAREPOINT_REFRESH_RUNNING or now - SHAREPOINT_REFRESH_LAST_STARTED < 20:
+            return
+        SHAREPOINT_REFRESH_RUNNING = True
+        SHAREPOINT_REFRESH_LAST_STARTED = now
     threading.Thread(
         target=refresh_sharepoint_cache,
         daemon=True,
@@ -782,8 +797,12 @@ def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
     schedule_sharepoint_cache_refresh()
     conn = db()
-    query = "SELECT * FROM tickets WHERE (owner=? OR lower(shift_leader)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?) AND m.role='SHIFT_LEADER') OR (target_email<>'' AND (lower(target_email)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND lower(m.email)=lower(tickets.target_email) AND m.role='AREA_LEADER' AND lower(m.managed_by)=lower(?) AND (tickets.target_family='' OR m.family_name=tickets.target_family)))) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
-    args = [user, user, user, user, user, user]
+    if highest_role(conn, user) == "ADMIN":
+        query = "SELECT * FROM tickets"
+        args = []
+    else:
+        query = "SELECT * FROM tickets WHERE (owner=? OR lower(shift_leader)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?) AND m.role='SHIFT_LEADER') OR (target_email<>'' AND (lower(target_email)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND lower(m.email)=lower(tickets.target_email) AND m.role='AREA_LEADER' AND lower(m.managed_by)=lower(?) AND (tickets.target_family='' OR m.family_name=tickets.target_family)))) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
+        args = [user, user, user, user, user, user]
     if day != "all":
         query += " AND day=?"
         args.append(day)
