@@ -66,7 +66,8 @@ function load() {
     const sessionResult = results[0];
     if (sessionResult.status !== 'fulfilled') throw sessionResult.reason;
     const tickets = results[1].status === 'fulfilled' ? results[1].value : [];
-    applyState(sessionResult.value, tickets, results[2].status === 'fulfilled' ? results[2].value : [], results[3].status === 'fulfilled' ? results[3].value : tickets);
+    const dashboardTickets = results[3].status === 'fulfilled' && Array.isArray(results[3].value) ? results[3].value : [];
+    applyState(sessionResult.value, tickets, results[2].status === 'fulfilled' ? results[2].value : [], dashboardTickets);
   });
 }
 

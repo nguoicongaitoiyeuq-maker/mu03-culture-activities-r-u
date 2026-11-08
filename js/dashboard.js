@@ -6,7 +6,7 @@ function miniBars(values) {
 function renderKpis() {}
 
 function dashboardItems() {
-  return state.dashboardTickets || state.tickets;
+  return state.dashboardTickets;
 }
 
 function renderKpisLegacy() {
@@ -113,7 +113,7 @@ function renderRows() {
 function renderData() {
   const list = document.getElementById('dataList');
   if (!list) return;
-  const items = dashboardItems().filter((ticket) => state.day === 'all' || ticket.day === state.day);
+  const items = state.tickets.filter((ticket) => ticket.status === 'CLOSED' && (state.day === 'all' || ticket.day === state.day));
   list.innerHTML = items.length ? items.map((ticket) => {
     const media = (ticket.media || []).map((item) => item.type?.startsWith('video')
       ? `<video controls preload="metadata" src="${item.data}" aria-label="${esc(item.name)}"></video>`
