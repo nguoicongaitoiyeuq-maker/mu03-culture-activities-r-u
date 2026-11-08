@@ -531,6 +531,9 @@ async def create_ticket(request: Request):
         raise HTTPException(403, "Only the Ban Văn Hóa members can create tickets")
     if any(not str(payload.get(key, "")).strip() for key in ("title", "family", "content")):
         raise HTTPException(400, "Title, family and content are required")
+    work_shift = str(payload.get("work_shift", "")).strip().lower()
+    if work_shift not in ("day", "night"):
+        raise HTTPException(400, "Select Day or Night shift")
     conn = db()
     access, _ = family_access(conn, user, str(payload["family"]).strip())
     if not access:
@@ -566,7 +569,7 @@ async def create_ticket(request: Request):
     for target in targets:
         target_email = target["email"].strip().lower() if target else ""
         target_family = target["family_name"] if family_name == "ALL MU03" and target and target["role"] == "AREA_LEADER" else (family_name if target and target["role"] == "AREA_LEADER" else "")
-        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": business_today(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target["managed_by"].strip().lower() if target and target["role"] == "AREA_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email, "target_family": target_family, "work_shift": ""}
+        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": business_today(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target["managed_by"].strip().lower() if target and target["role"] == "AREA_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email, "target_family": target_family, "work_shift": work_shift}
         conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email,target_family,work_shift) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email,:target_family,:work_shift)""", item)
         row = conn.execute("SELECT * FROM tickets WHERE id=?", (item["id"],)).fetchone()
         results.append(ticket_json(row, conn, user))
