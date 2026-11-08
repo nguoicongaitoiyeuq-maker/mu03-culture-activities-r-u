@@ -5,6 +5,7 @@ import json
 import os
 import csv
 import sqlite3
+import shutil
 import tempfile
 import threading
 from pathlib import Path
@@ -20,7 +21,9 @@ from openpyxl.styles import Alignment, Font, PatternFill
 
 ROOT = Path(__file__).parent
 BANGKOK_TZ = ZoneInfo("Asia/Bangkok")
-DB_PATH = Path(os.getenv("MU03_DATA_PATH", str(ROOT / "mu03_ru.sqlite3")))
+LOCAL_DB_PATH = ROOT / "mu03_ru.sqlite3"
+CONFIGURED_DATA_PATH = os.getenv("MU03_DATA_PATH", "").strip()
+DB_PATH = Path(CONFIGURED_DATA_PATH or LOCAL_DB_PATH).expanduser()
 DEFAULT_FAMILIES = ["Gen 4", "Gen 5", "HTIW", "Grinder", "D&F", "Nailer", "Sub Line", "ALL MU03"]
 DEFAULT_LEADER = "Le Thanh Dat 1 (VN.MIL-PT-PRO-TOOL)"
 ROLE_RANK = {"MEMBER": 1, "AREA_LEADER": 2, "SHIFT_LEADER": 3, "ADMIN": 4}
@@ -140,6 +143,13 @@ SCHEMA_READY = False
 DIRECTORY = {}
 
 
+def prepare_db_path():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if DB_PATH == LOCAL_DB_PATH or DB_PATH.exists() or not LOCAL_DB_PATH.exists():
+        return
+    shutil.copy2(LOCAL_DB_PATH, DB_PATH)
+
+
 def load_directory():
     global DIRECTORY
     if DIRECTORY:
@@ -159,6 +169,7 @@ def add_column(conn, table, column, definition):
 
 def db():
     global SCHEMA_READY
+    prepare_db_path()
     conn = sqlite3.connect(DB_PATH, timeout=20)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA busy_timeout=20000")
