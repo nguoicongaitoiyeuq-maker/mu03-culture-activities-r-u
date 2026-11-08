@@ -22,7 +22,7 @@ from openpyxl.drawing.image import Image as ExcelImage
 from openpyxl.styles import Alignment, Font, PatternFill
 
 ROOT = Path(__file__).parent
-BANGKOK_TZ = ZoneInfo("Asia/Bangkok")
+VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 LOCAL_DB_PATH = ROOT / "mu03_ru.sqlite3"
 CONFIGURED_DATA_PATH = os.getenv("MU03_DATA_PATH", "").strip()
 DB_PATH = Path(CONFIGURED_DATA_PATH or LOCAL_DB_PATH).expanduser()
@@ -248,7 +248,7 @@ def now_iso():
 
 
 def business_today():
-    return datetime.now(BANGKOK_TZ).date().isoformat()
+    return datetime.now(VIETNAM_TZ).date().isoformat()
 
 
 def directory_lookup(request, email):
@@ -501,9 +501,16 @@ def notify_power_automate_update(ticket):
         return
     payload = {
         "id": ticket.get("id", ""),
+        "title": ticket.get("title", ""),
+        "family": ticket.get("family", ""),
+        "owner": ticket.get("owner", ""),
         "status": ticket.get("status", ""),
         "line": ticket.get("line_id", ""),
         "shift": ticket.get("work_shift", ""),
+        "shiftLeaderEmail": ticket.get("shift_leader", ""),
+        "areaLeaderEmail": ticket.get("area_leader", ""),
+        "waitingForCfm": ticket.get("status", "") in {"LINE SHARING COMPLETED", "NO LINE - COMPLETED"},
+        "cfmUrl": f"{os.getenv('MU03_APP_URL', 'https://mu03-r-u-3423969507737722.2.azure.databricksapps.com')}/?page=confirmation",
         "content": ticket.get("content", ""),
         "mediaJson": json.dumps(ticket.get("media") or [], ensure_ascii=False),
         # The HTTP trigger requires a date-shaped string. The flow converts
@@ -637,8 +644,15 @@ def session(request: Request):
         or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, user)).fetchone() is not None
     )
     conn.close()
-    profile = directory_lookup(request, user)
-    return {"user": user, "display_name": profile["display_name"], "today": business_today(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "can_view_data": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "sharepoint_configured": bool(sharepoint_token()), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
+    directory_profile = load_directory().get(user)
+    display_name = directory_profile["display_name"] if directory_profile else ""
+    if not display_name:
+        for key in ("x-forwarded-user-name", "x-user-name", "x-databricks-display-name"):
+            value = request.headers.get(key)
+            if value and "@" not in value:
+                display_name = value.strip()
+                break
+    return {"user": user, "display_name": display_name or user, "today": business_today(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "can_view_data": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "sharepoint_configured": bool(sharepoint_token()), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
 
 
 @app.get("/api/directory/lookup")

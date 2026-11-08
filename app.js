@@ -1,14 +1,34 @@
 const dayPicker = document.getElementById('dayPicker');
 const clearDateBtn = document.getElementById('clearDateBtn');
 
+function vietnamToday() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date()).reduce((result, part) => {
+    if (part.type !== 'literal') result[part.type] = part.value;
+    return result;
+  }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
 function updateDateFilterUI() {
-  const active = state.day && state.day !== 'all';
+  const today = vietnamToday();
+  if (dayPicker) {
+    dayPicker.min = today;
+    dayPicker.max = today;
+  }
+  if (state.day !== 'all' && state.day !== today) state.day = 'all';
+  const active = state.day === today;
   if (dayPicker) dayPicker.value = active ? state.day : '';
   if (clearDateBtn) clearDateBtn.disabled = !active;
 }
 
 dayPicker?.addEventListener('change', () => {
-  state.day = dayPicker.value || 'all';
+  const today = vietnamToday();
+  state.day = dayPicker.value === today ? today : 'all';
   updateDateFilterUI();
   renderAll();
 });

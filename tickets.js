@@ -31,6 +31,7 @@ function applyState(session, tickets, familiesList, dashboardTickets) {
   const dayPicker = document.getElementById('dayPicker');
   if (dayPicker) updateDateFilterUI();
   renderAll();
+  showPage(requestedPage());
 }
 
 function renderFamilyOptions() {
