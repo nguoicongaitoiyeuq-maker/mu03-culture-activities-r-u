@@ -2,6 +2,7 @@ function renderAll() {
   renderKpis();
   renderSummary();
   renderRows();
+  renderData();
   renderWorkflowPareto();
   renderInbox();
   renderConfirm();
@@ -9,21 +10,45 @@ function renderAll() {
   refreshSla();
 }
 
-function applyState(session, tickets, familiesList) {
+function applyState(session, tickets, familiesList, dashboardTickets) {
   state.user = session.user;
   state.displayName = session.display_name || session.user;
   state.today = session.today;
   state.role = session.role || 'MEMBER';
-  state.canCreateTicket = session.can_create_ticket === true;
+  state.canCreateTicket = session.can_create_ticket === true || CFM_EMAILS.has(String(session.user || '').trim().toLowerCase());
+  state.canViewCfm = session.can_view_cfm === true || session.role === 'SHIFT_LEADER' || CFM_EMAILS.has(String(session.user || '').trim().toLowerCase());
+  state.canViewData = session.can_view_data === true;
   state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
+  state.dashboardTickets = dashboardTickets ?? tickets;
   state.families = familiesList;
   userPill.textContent = state.displayName;
   document.querySelectorAll('[data-page="create"], [data-new-ticket]').forEach((element) => element.classList.toggle('hidden', !state.canCreateTicket));
-  if (typeof ownerEmail !== 'undefined') ownerEmail.value = session.user;
-  daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
-  daySelect.value = state.day;
+  document.querySelectorAll('[data-cfm-menu]').forEach((element) => element.classList.toggle('hidden', !state.canViewCfm));
+  document.querySelectorAll('[data-page="data"]').forEach((element) => element.classList.toggle('hidden', !state.canViewData));
+  renderFamilyOptions();
+  setAccountEmail(session.user);
+  const dayPicker = document.getElementById('dayPicker');
+  if (dayPicker) updateDateFilterUI();
   renderAll();
+}
+
+function renderFamilyOptions() {
+  const select = document.getElementById('family');
+  if (!select) return;
+  const current = select.value;
+  const names = state.families
+    .filter((name) => name !== 'Core Teams')
+    .sort((left, right) => left === 'ALL MU03' ? -1 : right === 'ALL MU03' ? 1 : 0);
+  select.innerHTML = '<option value="" disabled>Select a family model</option>' + names
+    .map((name) => `<option value="${esc(name)}">${esc(name)}</option>`)
+    .join('');
+  select.value = names.includes(current) ? current : '';
+}
+
+function setAccountEmail(email) {
+  const input = document.getElementById('ownerEmail');
+  if (input) input.value = String(email || '').trim().toLowerCase();
 }
 
 let bootstrapUsed = false;
@@ -32,13 +57,15 @@ function load() {
   if (window.__BOOTSTRAP__ && !bootstrapUsed) {
     bootstrapUsed = true;
     const boot = window.__BOOTSTRAP__;
-    applyState(boot, boot.tickets || [], boot.families || []);
+    applyState(boot, boot.tickets || [], boot.families || [], boot.dashboard_tickets || boot.tickets || []);
     return Promise.resolve();
   }
-  return Promise.allSettled([api('/api/session'), api('/api/tickets'), api('/api/families')]).then((results) => {
+  return Promise.allSettled([api('/api/session'), api('/api/tickets'), api('/api/families'), api('/api/dashboard/tickets')]).then((results) => {
     const sessionResult = results[0];
     if (sessionResult.status !== 'fulfilled') throw sessionResult.reason;
-    applyState(sessionResult.value, results[1].status === 'fulfilled' ? results[1].value : [], results[2].status === 'fulfilled' ? results[2].value : []);
+    const tickets = results[1].status === 'fulfilled' ? results[1].value : [];
+    const dashboardTickets = results[3].status === 'fulfilled' && Array.isArray(results[3].value) ? results[3].value : [];
+    applyState(sessionResult.value, tickets, results[2].status === 'fulfilled' ? results[2].value : [], dashboardTickets);
   });
 }
 
@@ -69,11 +96,13 @@ async function createTicket() {
   ticketSubmitting = true;
   if (button) { button.disabled = true; button.textContent = 'SENDING...'; }
   try {
-    const ticket = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, cause: 'General', media: state.media }) });
+    const result = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, cause: 'General', media: state.media }) });
+    const ticket = result.tickets?.[0] || result;
+    const sentCount = Number(result.count || 1);
     clearForm();
     await load();
     showPage('dashboard');
-    showToast(`Gửi ticket thành công: ${ticket.id}`, 'success');
+    showToast(sentCount > 1 ? `Gửi ticket thành công tới ${sentCount} leaders` : `Gửi ticket thành công: ${ticket.id}`, 'success');
   } catch (error) { showToast(error.message || 'Không thể tạo ticket', 'error'); }
   finally { ticketSubmitting = false; if (button) { button.disabled = false; button.textContent = 'SEND TICKET'; } }
 }
@@ -81,18 +110,42 @@ async function createTicket() {
 function clearForm() {
   title.value = '';
   content.value = '';
-  if (typeof ownerEmail !== 'undefined') ownerEmail.value = state.user;
+  setAccountEmail(state.user);
   state.media = [];
   mediaPreview.innerHTML = '';
 }
 
+function applyTicketUpdate(updated) {
+  if (!updated?.id) return;
+  const merge = (ticket) => ticket.id === updated.id ? { ...ticket, ...updated } : ticket;
+  state.tickets = state.tickets.some((ticket) => ticket.id === updated.id)
+    ? state.tickets.map(merge)
+    : [...state.tickets, updated];
+  state.dashboardTickets = state.dashboardTickets.some((ticket) => ticket.id === updated.id)
+    ? state.dashboardTickets.map(merge)
+    : [...state.dashboardTickets, updated];
+  renderAll();
+}
+
 function patch(id, payload) {
-  return api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }).then(load);
+  return api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) })
+    .then((updated) => { applyTicketUpdate(updated); return updated; });
 }
 
 function markRead(id) { patch(id, { status: 'READ' }); }
 
-function closeTicket(id) { patch(id, { status: 'CLOSED' }); }
+async function closeTicket(id) {
+  const buttons = [...document.querySelectorAll('button[data-confirm-ticket]')].filter((button) => button.dataset.confirmTicket === id);
+  if (buttons.some((button) => button.disabled)) return;
+  buttons.forEach((button) => { button.disabled = true; button.textContent = 'CLOSING...'; });
+  try {
+    await patch(id, { status: 'CLOSED' });
+    showToast('Ticket closed successfully', 'success');
+  } catch (error) {
+    showToast(error.message || 'Cannot close ticket', 'error');
+    buttons.forEach((button) => { button.disabled = false; button.textContent = 'CONFIRM & CLOSE'; });
+  }
+}
 
 mediaInput.onchange = (event) => {
   [...event.target.files].slice(0, 6).forEach((file) => {
