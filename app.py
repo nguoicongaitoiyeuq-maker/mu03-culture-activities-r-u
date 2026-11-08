@@ -9,6 +9,7 @@ import shutil
 import tempfile
 import threading
 from pathlib import Path
+from urllib.parse import quote
 from urllib.request import Request as UrlRequest, urlopen
 from zoneinfo import ZoneInfo
 
@@ -32,6 +33,9 @@ CULTURE_GROUP_OWNER = "thanhdat.le2@ttigroup.com.vn"
 CULTURE_GROUP_NAME = "Core Teams"
 LEGACY_CULTURE_GROUP_NAME = "Ban Văn Hóa"
 CORE_TEAM_OWNER_EMAILS = ("khachieu.nguyen01@ttigroup.com.vn", "hongthai.vu@ttigroup.com.vn")
+SHAREPOINT_HOST = os.getenv("MU03_SHAREPOINT_HOST", "ttigroup.sharepoint.com").strip()
+SHAREPOINT_SITE_PATH = os.getenv("MU03_SHAREPOINT_SITE_PATH", "/sites/MU03CultureActivities").strip()
+SHAREPOINT_LIST_NAME = os.getenv("MU03_SHAREPOINT_LIST_NAME", "MU03 Ticket Database").strip()
 CULTURE_GROUP_MEMBERS = [
     ("thanhphat.duong@ttigroup.com.vn", "Dương Thành Phát", "Assistant Production Manager", "MEMBER", ""),
     ("trunghieu.ho@ttigroup.com.vn", "Hồ Trung Hiếu", "Production Supervisor", "MEMBER", ""),
@@ -201,6 +205,7 @@ def db():
                 add_column(conn, "tickets", "reviewed_by", "TEXT NOT NULL DEFAULT ''")
                 add_column(conn, "tickets", "reviewed_at", "TEXT")
                 add_column(conn, "tickets", "work_shift", "TEXT NOT NULL DEFAULT ''")
+                add_column(conn, "tickets", "sharepoint_item_id", "TEXT NOT NULL DEFAULT ''")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_tickets_owner_day ON tickets(owner, day)")
                 conn.execute("""CREATE TABLE IF NOT EXISTS families (
                     owner TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -414,6 +419,86 @@ def notify_teams(ticket, event):
         pass
 
 
+def sharepoint_token():
+    return os.getenv("MS_GRAPH_ACCESS_TOKEN", "").strip()
+
+
+def sharepoint_graph_request(method, path, payload=None):
+    token = sharepoint_token()
+    if not token:
+        return None
+    url = "https://graph.microsoft.com/v1.0" + path
+    data = json.dumps(payload).encode() if payload is not None else None
+    request = UrlRequest(url, data=data, headers={"Authorization": f"Bearer {token}", "Accept": "application/json", "Content-Type": "application/json"}, method=method)
+    try:
+        with urlopen(request, timeout=12) as response:
+            raw = response.read()
+            return json.loads(raw.decode()) if raw else {}
+    except Exception:
+        return None
+
+
+def sharepoint_context():
+    if not sharepoint_token():
+        return None
+    site = sharepoint_graph_request("GET", f"/sites/{SHAREPOINT_HOST}:{SHAREPOINT_SITE_PATH}")
+    if not site or not site.get("id"):
+        return None
+    lists = sharepoint_graph_request("GET", f"/sites/{quote(site['id'], safe='')}/lists?$filter=displayName eq '{SHAREPOINT_LIST_NAME}'")
+    entries = (lists or {}).get("value") or []
+    if not entries:
+        return None
+    return site["id"], entries[0]["id"]
+
+
+def sharepoint_fields(ticket):
+    return {
+        "Title": ticket.get("title", ""),
+        "TicketId": ticket.get("id", ""),
+        "Status": ticket.get("status", ""),
+        "Family": ticket.get("target_family") or ticket.get("family", ""),
+        "OwnerEmail": ticket.get("owner", ""),
+        "LeaderEmail": ticket.get("leader", ""),
+        "Shift": ticket.get("work_shift", ""),
+        "Line": ticket.get("line_id", ""),
+        "TicketUrl": f"{os.getenv('MU03_APP_URL', 'https://mu03-r-u-3423969507737722.2.azure.databricksapps.com')}/?ticket={quote(ticket.get('id', ''))}",
+        "Content": ticket.get("content", ""),
+        "MediaJson": json.dumps([{key: media.get(key, "") for key in ("name", "type", "uploaded_on")} for media in (ticket.get("media") or [])], ensure_ascii=False),
+        "SentAt": ticket.get("sent_at", ""),
+        "ClosedAt": ticket.get("closed_at") or None,
+    }
+
+
+def sharepoint_create_ticket(ticket):
+    context = sharepoint_context()
+    if not context:
+        return ""
+    site_id, list_id = context
+    item = sharepoint_graph_request("POST", f"/sites/{quote(site_id, safe='')}/lists/{quote(list_id, safe='')}/items", {"fields": sharepoint_fields(ticket)})
+    item_id = str((item or {}).get("id") or "")
+    if not item_id:
+        return ""
+    for media in ticket.get("media") or []:
+        data = str(media.get("data") or "")
+        if not data.startswith("data:") or "," not in data:
+            continue
+        try:
+            encoded = data.split(",", 1)[1]
+            sharepoint_graph_request("POST", f"/sites/{quote(site_id, safe='')}/lists/{quote(list_id, safe='')}/items/{quote(item_id, safe='')}/attachments", {"name": media.get("name") or "evidence", "contentBytes": encoded})
+        except Exception:
+            pass
+    return item_id
+
+
+def sharepoint_update_ticket(ticket):
+    context = sharepoint_context()
+    item_id = str(ticket.get("sharepoint_item_id") or "")
+    if not context or not item_id:
+        return
+    site_id, list_id = context
+    sharepoint_graph_request("PATCH", f"/sites/{quote(site_id, safe='')}/lists/{quote(list_id, safe='')}/items/{quote(item_id, safe='')}/fields", sharepoint_fields(ticket))
+
+
 @app.get("/", include_in_schema=False)
 def home():
     return HTMLResponse((ROOT / "index.html").read_text(encoding="utf-8"))
@@ -453,7 +538,7 @@ def session(request: Request):
     )
     conn.close()
     profile = directory_lookup(request, user)
-    return {"user": user, "display_name": profile["display_name"], "today": business_today(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "can_view_data": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
+    return {"user": user, "display_name": profile["display_name"], "today": business_today(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "can_view_data": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "sharepoint_configured": bool(sharepoint_token()), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
 
 
 @app.get("/api/directory/lookup")
@@ -605,13 +690,20 @@ async def create_ticket(request: Request):
     for target in targets:
         target_email = target["email"].strip().lower() if target else ""
         target_family = target["family_name"] if family_name == "ALL MU03" and target and target["role"] == "AREA_LEADER" else (family_name if target and target["role"] == "AREA_LEADER" else "")
-        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": business_today(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target["managed_by"].strip().lower() if target and target["role"] == "AREA_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email, "target_family": target_family, "work_shift": work_shift}
-        conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email,target_family,work_shift) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email,:target_family,:work_shift)""", item)
+        item = {"id": "R&U-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + os.urandom(2).hex(), "owner": user, "day": business_today(), "title": str(payload["title"]).strip(), "family": family_name, "content": str(payload["content"]).strip(), "cause": str(payload.get("cause", "General")), "department": user, "leader": target_email or (areas[0] if areas else DEFAULT_LEADER), "status": "WAITING FOR LEADER READ", "line_id": "", "note": "", "media_json": json.dumps(payload.get("media", [])), "sent_at": now_iso(), "read_at": None, "closed_at": None, "family_owner": family_owner, "shift_leader": target["managed_by"].strip().lower() if target and target["role"] == "AREA_LEADER" else (shifts[0] if shifts else ""), "area_leader": target_email if target and target["role"] == "AREA_LEADER" else (areas[0] if areas else ""), "recipient_emails": json.dumps([target_email] if target_email else recipients), "target_email": target_email, "target_family": target_family, "work_shift": work_shift, "sharepoint_item_id": ""}
+        conn.execute("""INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email,target_family,work_shift,sharepoint_item_id) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email,:target_family,:work_shift,:sharepoint_item_id)""", item)
         row = conn.execute("SELECT * FROM tickets WHERE id=?", (item["id"],)).fetchone()
         results.append(ticket_json(row, conn, user))
     conn.commit()
     conn.close()
     for result in results:
+        sharepoint_id = sharepoint_create_ticket(result)
+        if sharepoint_id:
+            result["sharepoint_item_id"] = sharepoint_id
+            mirror = db()
+            mirror.execute("UPDATE tickets SET sharepoint_item_id=? WHERE id=?", (sharepoint_id, result["id"]))
+            mirror.commit()
+            mirror.close()
         notify_teams(result, "New ticket")
     return results[0] if len(results) == 1 else {"broadcast": True, "count": len(results), "tickets": results}
 
@@ -680,6 +772,7 @@ async def update_ticket(ticket_id: str, request: Request):
     updated = conn.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
     result = ticket_json(updated, conn, user)
     conn.close()
+    sharepoint_update_ticket(result)
     if status:
         notify_teams(result, f"Ticket status changed to {status}")
     return result
