@@ -531,9 +531,7 @@ async def create_ticket(request: Request):
         raise HTTPException(403, "Only the Ban Văn Hóa members can create tickets")
     if any(not str(payload.get(key, "")).strip() for key in ("title", "family", "content")):
         raise HTTPException(400, "Title, family and content are required")
-    work_shift = str(payload.get("work_shift", "")).strip().lower()
-    if work_shift not in ("day", "night"):
-        raise HTTPException(400, "Select Day or Night shift")
+    work_shift = ""
     conn = db()
     access, _ = family_access(conn, user, str(payload["family"]).strip())
     if not access:

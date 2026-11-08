@@ -413,6 +413,7 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 <th>Ticket</th>
 <th>Title</th>
 <th>Family</th>
+<th>Shift</th>
 <th>Leader</th>
 <th>Line</th>
 <th>Status</th>
@@ -441,14 +442,6 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 <label>Target Family Model *</label>
 <select id="family">
 <option value="" selected disabled>Select a family model</option>
-</select>
-</div>
-<div class="field">
-<label>Shift *</label>
-<select id="shift" required>
-<option value="" selected disabled>Select shift</option>
-<option value="day">Day</option>
-<option value="night">Night</option>
 </select>
 </div>
 <div class="field">
@@ -657,6 +650,19 @@ body.app-body{font-synthesis:none}
 <style id="data-scroll-polish">
 .data-record-body p{max-height:96px;overflow:auto;padding-right:8px;white-space:pre-wrap}
 .data-record-body span{max-width:100%;overflow-wrap:anywhere}
+</style>
+<style id="tracking-3d-family">
+#dashboard .table-panel table{min-width:980px}
+#dashboard .table-panel tbody tr{transform:translateZ(0);transition:transform .25s ease,box-shadow .25s ease}
+#dashboard .table-panel tbody tr:hover{transform:translateY(-3px) translateZ(8px);box-shadow:0 10px 18px #7a1e2918}
+.tracking-id,.tracking-title,.tracking-person,.tracking-line,.tracking-shift,.tracking-family{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border-radius:8px;box-shadow:0 3px 0 #c7aab0,0 5px 10px #0002,inset 0 1px 0 #fff9;font-weight:800;line-height:1.2}
+.tracking-id{background:#fff1f3;color:#741426;font-size:11px;max-width:200px;overflow-wrap:anywhere}
+.tracking-title{background:#fff;color:#342126}
+.tracking-person{background:#f8f3f4;color:#4d373d;font-size:11px;max-width:220px;overflow-wrap:anywhere}
+.tracking-line{background:#f4edf0;color:#573b43;min-width:26px;justify-content:center}
+.tracking-shift{background:#f0e8ea;color:#70535b;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.tracking-shift.selected{background:#fff0c9;color:#815700;box-shadow:0 3px 0 #bc8a13,0 5px 10px #0002,inset 0 1px 0 #fff9}
+.tracking-family{border-left:5px solid #a7a0a4;font-size:10px;letter-spacing:.04em;white-space:nowrap}.family-gen4{background:#e8ecff;color:#34469c;border-left-color:#5068e8}.family-gen5{background:#eee7ff;color:#6439a4;border-left-color:#8a54d8}.family-htiw{background:#e3f7ff;color:#096b8e;border-left-color:#12a7d8}.family-grinder{background:#fff0d6;color:#8a5a00;border-left-color:#e3a21a}.family-df{background:#e4f8eb;color:#167047;border-left-color:#20a765}.family-nailer{background:#ffe6e9;color:#a12839;border-left-color:#ef5165}.family-subline{background:#e9f0f8;color:#305a7d;border-left-color:#5d8fbd}.family-other{background:#eee;color:#555}
+@media(max-width:700px){#dashboard .table-panel table{min-width:1120px}.tracking-person{max-width:180px}}
 </style>
 </body>
 </html>
