@@ -37,6 +37,7 @@ SHAREPOINT_HOST = os.getenv("MU03_SHAREPOINT_HOST", "ttigroup.sharepoint.com").s
 SHAREPOINT_SITE_PATH = os.getenv("MU03_SHAREPOINT_SITE_PATH", "/sites/MU03CultureActivities").strip()
 SHAREPOINT_LIST_NAME = os.getenv("MU03_SHAREPOINT_LIST_NAME", "MU03 Ticket Database").strip()
 MU03_FLOW_HTTP_URL = os.getenv("MU03_FLOW_HTTP_URL", "").strip()
+MU03_UPDATE_FLOW_HTTP_URL = os.getenv("MU03_UPDATE_FLOW_HTTP_URL", "").strip()
 CULTURE_GROUP_MEMBERS = [
     ("thanhphat.duong@ttigroup.com.vn", "Dương Thành Phát", "Assistant Production Manager", "MEMBER", ""),
     ("trunghieu.ho@ttigroup.com.vn", "Hồ Trung Hiếu", "Production Supervisor", "MEMBER", ""),
@@ -444,6 +445,27 @@ def notify_power_automate(ticket):
         pass
 
 
+def notify_power_automate_update(ticket):
+    if not MU03_UPDATE_FLOW_HTTP_URL:
+        return
+    payload = {
+        "id": ticket.get("id", ""),
+        "status": ticket.get("status", ""),
+        "line": ticket.get("line_id", ""),
+        "shift": ticket.get("work_shift", ""),
+        "content": ticket.get("content", ""),
+        "mediaJson": json.dumps(ticket.get("media") or [], ensure_ascii=False),
+        "closedAt": ticket.get("closed_at") or "",
+        "ticketUrl": f"{os.getenv('MU03_APP_URL', 'https://mu03-r-u-3423969507737722.2.azure.databricksapps.com')}/?ticket={quote(ticket.get('id', ''))}",
+    }
+    try:
+        request = UrlRequest(MU03_UPDATE_FLOW_HTTP_URL, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
+        with urlopen(request, timeout=8):
+            pass
+    except Exception:
+        pass
+
+
 def sharepoint_token():
     return os.getenv("MS_GRAPH_ACCESS_TOKEN", "").strip()
 
@@ -799,6 +821,7 @@ async def update_ticket(ticket_id: str, request: Request):
     result = ticket_json(updated, conn, user)
     conn.close()
     sharepoint_update_ticket(result)
+    notify_power_automate_update(result)
     if status:
         notify_teams(result, f"Ticket status changed to {status}")
     return result
