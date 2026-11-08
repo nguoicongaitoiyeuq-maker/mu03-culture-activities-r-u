@@ -21,6 +21,21 @@ function familyNames() {
   return state.families.filter((name) => name !== 'ALL MU03');
 }
 
+function coreTeamSort(members) {
+  const rank = (member) => {
+    const email = String(member.email || '').toLowerCase();
+    const title = String(member.title || '').toLowerCase();
+    if (email === 'khachieu.nguyen01@ttigroup.com.vn') return 0;
+    if (email === 'hongthai.vu@ttigroup.com.vn') return 1;
+    if (title.includes('assistant production manager')) return 2;
+    if (title.includes('senior production supervisor')) return 3;
+    if (title.includes('production supervisor')) return 4;
+    if (title.includes('senior')) return 5;
+    return 6;
+  };
+  return [...members].sort((left, right) => rank(left) - rank(right) || memberName(left).localeCompare(memberName(right), 'vi'));
+}
+
 function renderFamilies() {
   if (!document.getElementById('familyOverview')) return;
   loadFamilyOverview();
@@ -34,9 +49,9 @@ function renderGroupCards(groups) {
     return;
   }
   overview.innerHTML = groups.map((group, index) => {
-    const shifts = group.members.filter((member) => member.role === 'SHIFT_LEADER');
-    const preview = shifts.length
-      ? shifts.slice(0, 2).map((shift) => `<span><b>Owner</b>${esc(memberName(shift))}</span>`).join('')
+    const owners = group.name === 'Core Teams' ? coreTeamSort(group.members).slice(0, 2) : group.members.filter((member) => member.role === 'SHIFT_LEADER');
+    const preview = owners.length
+      ? owners.map((owner) => `<span><b>Owner</b>${esc(memberName(owner))}</span>`).join('')
       : '<span>No shift leader assigned</span>';
     return `<button type="button" class="group-card" onclick="selectFamily('${esc(group.name)}')"><div class="group-card-top"><span>Group ${String(index + 1).padStart(2, '0')}</span></div><h4>${esc(group.name)}</h4><div class="group-count">${group.members.length} configured members</div><div class="group-roster-preview">${preview}</div></button>`;
   }).join('');
@@ -46,6 +61,14 @@ function renderFamilyDetail(name, members) {
   const detail = document.getElementById('familyDetail');
   if (!detail) return;
   familyDetailOpen = true;
+  if (name === 'Core Teams') {
+    const ordered = coreTeamSort(members);
+    const owners = ordered.slice(0, 2);
+    const staff = ordered.slice(2);
+    detail.innerHTML = `<div class="group-detail-head"><div class="group-detail-title"><img class="group-detail-logo" src="/asset/10.jpg" alt=""><div><h3>${esc(name)}</h3><p>Web admin owners and member roster</p></div></div><div class="group-detail-head-actions"><span class="group-detail-badge">${members.length} members · 2 owners</span><button type="button" class="btn detail-toggle" onclick="toggleFamilyDetail()" aria-expanded="true" title="Hide or show members"><span aria-hidden="true">⌃</span><span>Hide members</span></button></div></div><div id="familyDetailBody"><div class="group-tree">${owners.map((owner) => `<article class="owner-card"><div class="owner-card-head"><span class="owner-avatar">${esc(initials(memberName(owner)))}</span><div><h4>${esc(memberName(owner))}</h4><div class="meta">${esc(owner.email)}</div><span class="owner-title">Admin owner</span></div></div></article>`).join('')}</div><div class="member-roster">${staff.map((member) => `<div class="report-row"><div class="member-frame"><b>${esc(memberName(member))}</b><small>${esc(member.email)}</small><em>${esc(member.title || 'Core Teams member')}</em></div></div>`).join('')}</div></div>`;
+    detail.classList.remove('hidden');
+    return;
+  }
   const shifts = members.filter((member) => member.role === 'SHIFT_LEADER');
   const leaders = members.filter((member) => member.role !== 'SHIFT_LEADER');
   if (!shifts.length) {

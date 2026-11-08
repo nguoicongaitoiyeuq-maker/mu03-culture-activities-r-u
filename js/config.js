@@ -11,7 +11,9 @@ const CFM_EMAILS = new Set([
   'tuannhu.le01@ttigroup.com.vn',
   'minhquan.pham1@ttigroup.com.vn',
   'hailam.hoang@ttigroup.com.vn',
-  'thanhdat.le2@ttigroup.com.vn'
+  'thanhdat.le2@ttigroup.com.vn',
+  'hongthai.vu@ttigroup.com.vn',
+  'khachieu.nguyen01@ttigroup.com.vn'
 ]);
 let leaderMedia = {};
 let expandedTickets = {};
