@@ -36,6 +36,7 @@ CORE_TEAM_OWNER_EMAILS = ("khachieu.nguyen01@ttigroup.com.vn", "hongthai.vu@ttig
 SHAREPOINT_HOST = os.getenv("MU03_SHAREPOINT_HOST", "ttigroup.sharepoint.com").strip()
 SHAREPOINT_SITE_PATH = os.getenv("MU03_SHAREPOINT_SITE_PATH", "/sites/MU03CultureActivities").strip()
 SHAREPOINT_LIST_NAME = os.getenv("MU03_SHAREPOINT_LIST_NAME", "MU03 Ticket Database").strip()
+MU03_FLOW_HTTP_URL = os.getenv("MU03_FLOW_HTTP_URL", "").strip()
 CULTURE_GROUP_MEMBERS = [
     ("thanhphat.duong@ttigroup.com.vn", "Dương Thành Phát", "Assistant Production Manager", "MEMBER", ""),
     ("trunghieu.ho@ttigroup.com.vn", "Hồ Trung Hiếu", "Production Supervisor", "MEMBER", ""),
@@ -419,6 +420,30 @@ def notify_teams(ticket, event):
         pass
 
 
+def notify_power_automate(ticket):
+    if not MU03_FLOW_HTTP_URL:
+        return
+    payload = {
+        "id": ticket.get("id", ""),
+        "title": ticket.get("title", ""),
+        "family": ticket.get("target_family") or ticket.get("family", ""),
+        "content": ticket.get("content", ""),
+        "owner": ticket.get("owner", ""),
+        "leader": ticket.get("leader", ""),
+        "status": ticket.get("status", ""),
+        "shift": ticket.get("work_shift", ""),
+        "line": ticket.get("line_id", ""),
+        "ticketUrl": f"{os.getenv('MU03_APP_URL', 'https://mu03-r-u-3423969507737722.2.azure.databricksapps.com')}/?ticket={quote(ticket.get('id', ''))}",
+        "mediaJson": json.dumps(ticket.get("media") or [], ensure_ascii=False),
+    }
+    try:
+        request = UrlRequest(MU03_FLOW_HTTP_URL, data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
+        with urlopen(request, timeout=8):
+            pass
+    except Exception:
+        pass
+
+
 def sharepoint_token():
     return os.getenv("MS_GRAPH_ACCESS_TOKEN", "").strip()
 
@@ -704,6 +729,7 @@ async def create_ticket(request: Request):
             mirror.execute("UPDATE tickets SET sharepoint_item_id=? WHERE id=?", (sharepoint_id, result["id"]))
             mirror.commit()
             mirror.close()
+        notify_power_automate(result)
         notify_teams(result, "New ticket")
     return results[0] if len(results) == 1 else {"broadcast": True, "count": len(results), "tickets": results}
 
