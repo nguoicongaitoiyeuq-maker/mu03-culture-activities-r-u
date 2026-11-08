@@ -387,13 +387,20 @@ def media_preview_data(media):
         return ""
 
 
+def add_media_previews(media):
+    result = []
+    for entry in media or []:
+        item = dict(entry)
+        preview = media_preview_data(item)
+        if preview:
+            item["preview_data"] = preview
+        result.append(item)
+    return result
+
+
 def ticket_json(row, conn=None, user=None):
     item = dict(row)
-    item["media"] = json.loads(item.pop("media_json") or "[]")
-    for media in item["media"]:
-        preview = media_preview_data(media)
-        if preview:
-            media["preview_data"] = preview
+    item["media"] = add_media_previews(json.loads(item.pop("media_json") or "[]"))
     item["recipients"] = json.loads(item.pop("recipient_emails", "[]") or "[]")
     item["can_update_today"] = item.get("day") == business_today()
     if not str(item.get("leader") or "").strip() or item["leader"] == "Leader Inbox":
@@ -741,7 +748,7 @@ def list_tickets(request: Request, day: str = "all"):
 def dashboard_ticket_feed(request: Request):
     shared = read_sharepoint_tickets()
     if shared is not None:
-        return shared
+        return [dict(item, media=add_media_previews(item.get("media") or [])) for item in shared]
     conn = db()
     rows = conn.execute("SELECT * FROM tickets ORDER BY sent_at DESC").fetchall()
     result = []
@@ -762,7 +769,7 @@ def remove_export(path):
 
 
 def excel_image_from_media(media):
-    data = str(media.get("data") or "")
+    data = str(media.get("preview_data") or media.get("data") or "")
     if not data.startswith("data:") or "," not in data:
         return None
     try:
