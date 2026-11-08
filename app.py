@@ -38,6 +38,7 @@ SHAREPOINT_SITE_PATH = os.getenv("MU03_SHAREPOINT_SITE_PATH", "/sites/MU03Cultur
 SHAREPOINT_LIST_NAME = os.getenv("MU03_SHAREPOINT_LIST_NAME", "MU03 Ticket Database").strip()
 MU03_FLOW_HTTP_URL = os.getenv("MU03_FLOW_HTTP_URL", "").strip()
 MU03_UPDATE_FLOW_HTTP_URL = os.getenv("MU03_UPDATE_FLOW_HTTP_URL", "").strip()
+MU03_READ_FLOW_HTTP_URL = os.getenv("MU03_READ_FLOW_HTTP_URL", "").strip()
 CULTURE_GROUP_MEMBERS = [
     ("thanhphat.duong@ttigroup.com.vn", "Dương Thành Phát", "Assistant Production Manager", "MEMBER", ""),
     ("trunghieu.ho@ttigroup.com.vn", "Hồ Trung Hiếu", "Production Supervisor", "MEMBER", ""),
@@ -595,6 +596,46 @@ def lookup_directory(email: str, request: Request):
     return directory_lookup(request, email)
 
 
+def read_sharepoint_tickets():
+    if not MU03_READ_FLOW_HTTP_URL:
+        return None
+    try:
+        request = UrlRequest(MU03_READ_FLOW_HTTP_URL, data=b"{}", headers={"Content-Type": "application/json"}, method="POST")
+        with urlopen(request, timeout=12) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return None
+    entries = payload if isinstance(payload, list) else (payload.get("value") or payload.get("items") or [])
+    result = []
+    for entry in entries:
+        fields = entry.get("fields") or entry
+        media_value = fields.get("MediaJson") or "[]"
+        try:
+            media = json.loads(media_value) if isinstance(media_value, str) else (media_value or [])
+        except (TypeError, ValueError):
+            media = []
+        sent_at = fields.get("SentAt") or entry.get("createdDateTime") or ""
+        result.append({
+            "id": fields.get("TicketId") or entry.get("id", ""),
+            "owner": fields.get("OwnerEmail", ""),
+            "day": str(sent_at)[:10],
+            "title": fields.get("Title", ""),
+            "family": fields.get("Family", ""),
+            "target_family": fields.get("Family", ""),
+            "content": fields.get("Content", ""),
+            "leader": fields.get("LeaderEmail", ""),
+            "status": fields.get("Status", ""),
+            "line_id": fields.get("Line", ""),
+            "work_shift": fields.get("Shift", ""),
+            "sent_at": sent_at,
+            "closed_at": fields.get("ClosedAt") or None,
+            "media": media,
+            "recipients": [fields.get("LeaderEmail", "")] if fields.get("LeaderEmail") else [],
+            "sharepoint_item_id": str(entry.get("id", "")),
+        })
+    return result
+
+
 @app.get("/api/tickets")
 def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
@@ -612,6 +653,9 @@ def list_tickets(request: Request, day: str = "all"):
 
 @app.get("/api/dashboard/tickets")
 def dashboard_ticket_feed(request: Request):
+    shared = read_sharepoint_tickets()
+    if shared is not None:
+        return shared
     conn = db()
     rows = conn.execute("SELECT * FROM tickets ORDER BY sent_at DESC").fetchall()
     result = []
