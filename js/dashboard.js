@@ -107,7 +107,7 @@ function renderGroupCharts() {
 function renderRows() {
   const items = dashboardItems().filter((ticket) => state.day === 'all' || ticket.day === state.day);
   ticketRows.innerHTML = items.length ? items.map((ticket) => { const family = ticketGroup(ticket); return `<tr><td><b class="tracking-id">${esc(ticket.id)}</b><br><span class="meta">${new Date(ticket.sent_at).toLocaleString('vi-VN')}</span></td><td><span class="tracking-title">${esc(ticket.title)}</span></td><td><span class="tracking-family family-${familyTone(family)}">${esc(family)}</span></td><td><span class="tracking-shift ${ticket.work_shift ? 'selected' : ''}">${esc(ticket.work_shift || '—')}</span></td><td><span class="tracking-person">${esc(leaderName(ticket.leader))}</span></td><td><span class="tracking-line">${esc(ticket.line_id || '—')}</span></td><td>${badge(ticket.status)}</td><td>${formatSla(ticket)}</td></tr>`; }).join('') : '<tr><td colspan="8" class="empty">No tickets for this date.</td></tr>';
-  scopeLabel.textContent = `${state.user || ''} · ${state.day === 'all' ? 'all dates' : state.day}`;
+  scopeLabel.textContent = `${state.user || ''} · ${state.day === 'all' ? 'Any date' : state.day}`;
 }
 
 function renderData() {
@@ -140,7 +140,7 @@ function renderSummary() {
   summaryReadBar.style.height = `${Math.max(8, read / max * 72)}px`;
   summaryCfmBar.style.height = `${Math.max(8, completed / max * 72)}px`;
   summaryClosedBar.style.height = `${Math.max(8, closed / max * 72)}px`;
-  summaryDate.textContent = state.day === 'all' ? 'All dates' : state.day;
+  summaryDate.textContent = state.day === 'all' ? 'Any date' : state.day;
   renderGroupCharts();
 }
 
