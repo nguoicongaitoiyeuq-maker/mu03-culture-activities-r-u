@@ -614,7 +614,7 @@ def read_sharepoint_tickets():
             media = json.loads(media_value) if isinstance(media_value, str) else (media_value or [])
         except (TypeError, ValueError):
             media = []
-        sent_at = fields.get("SentAt") or entry.get("createdDateTime") or ""
+        sent_at = fields.get("SentAt") or fields.get("Created") or entry.get("createdDateTime") or ""
         result.append({
             "id": fields.get("TicketId") or entry.get("id", ""),
             "owner": fields.get("OwnerEmail", ""),
