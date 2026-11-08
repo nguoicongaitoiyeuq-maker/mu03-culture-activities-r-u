@@ -378,13 +378,13 @@ body.app-body{background:radial-gradient(circle at 50% -20%,#68101d 0%,#17050a 4
 <div class="group-chart-head"><h3>Pending</h3><strong>0</strong></div>
 <div class="group-chart-stage" aria-label="Pending tickets by group"></div>
 </article>
-<article class="group-chart-card" data-chart="cfm">
-<div class="group-chart-head"><h3>Fail Ticket</h3><strong>0</strong></div>
-<div class="group-chart-stage" aria-label="Failed tickets by group"></div>
-</article>
 <article class="group-chart-card" data-chart="closed">
 <div class="group-chart-head"><h3>Closed</h3><strong>0</strong></div>
 <div class="group-chart-stage" aria-label="Closed tickets by group"></div>
+</article>
+<article class="group-chart-card" data-chart="cfm">
+<div class="group-chart-head"><h3>Fail Ticket</h3><strong>0</strong></div>
+<div class="group-chart-stage" aria-label="Failed tickets by group"></div>
 </article>
 </section>
 <div class="dashboard-carousel">
@@ -671,6 +671,19 @@ body.app-body{font-synthesis:none}
 .tracking-shift{background:#f0e8ea;color:#70535b;font-size:10px;text-transform:uppercase;letter-spacing:.08em}.tracking-shift.selected{background:#fff0c9;color:#815700;box-shadow:0 3px 0 #bc8a13,0 5px 10px #0002,inset 0 1px 0 #fff9}
 .tracking-family{border-left:5px solid #a7a0a4;font-size:10px;letter-spacing:.04em;white-space:nowrap}.family-gen4{background:#e8ecff;color:#34469c;border-left-color:#5068e8}.family-gen5{background:#eee7ff;color:#6439a4;border-left-color:#8a54d8}.family-htiw{background:#e3f7ff;color:#096b8e;border-left-color:#12a7d8}.family-grinder{background:#fff0d6;color:#8a5a00;border-left-color:#e3a21a}.family-df{background:#e4f8eb;color:#167047;border-left-color:#20a765}.family-nailer{background:#ffe6e9;color:#a12839;border-left-color:#ef5165}.family-subline{background:#e9f0f8;color:#305a7d;border-left-color:#5d8fbd}.family-other{background:#eee;color:#555}
 @media(max-width:700px){#dashboard .table-panel table{min-width:1120px}.tracking-person{max-width:180px}}
+</style>
+<style id="final-3d-polish">
+.nav{background:linear-gradient(180deg,#fff,#fff5f6);border:1px solid #e5b7be;border-left:0;border-right:0;box-shadow:0 7px 0 #d7a5ad,0 15px 24px #5c0b1728,inset 0 1px 0 #fff;transform:translateZ(10px)}
+.nav-brand{padding:7px 12px;border:1px solid #e5b7be;border-radius:10px;background:linear-gradient(145deg,#fff,#ffe7eb);box-shadow:0 4px 0 #cda0a7,0 8px 14px #5c0b171c,inset 0 1px 0 #fff;transform:translateZ(8px)}
+.nav button{border:1px solid #efc5ca;background:linear-gradient(145deg,#fff,#fff0f2);box-shadow:0 4px 0 #d7a5ad,0 7px 13px #5c0b171b,inset 0 1px 0 #fff;transform:translateZ(4px)}
+.nav button:hover{background:linear-gradient(145deg,#fff,#ffe4e8);box-shadow:0 7px 0 #c98791,0 15px 24px #5c0b1730,inset 0 1px 0 #fff;transform:translateY(-4px) rotateX(5deg) translateZ(14px)}
+.nav button.active{background:linear-gradient(145deg,#fff,#ffdfe4);box-shadow:0 6px 0 #b96570,0 13px 22px #5c0b1730,inset 0 1px 0 #fff;color:#ae1224;transform:translateY(-2px) translateZ(12px)}
+#dashboard .table-panel .table-wrap{scrollbar-color:#b11228 #f5e0e4}
+#dashboard .table-panel .table-wrap::-webkit-scrollbar{width:14px;height:14px}
+#dashboard .table-panel .table-wrap::-webkit-scrollbar-track{background:linear-gradient(90deg,#f9edef,#ead0d5);border-left:1px solid #d8b2b9;box-shadow:inset 2px 0 5px #6e0b1b22,inset -1px 0 2px #fff}
+#dashboard .table-panel .table-wrap::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#ff7d8a 0%,#c1122f 42%,#760a1a 100%);border:3px solid #f1dce0;border-radius:999px;box-shadow:0 2px 0 #5d0712,0 5px 10px #5d071255,inset 1px 1px 0 #ffccd1;min-height:54px}
+#dashboard .table-panel .table-wrap::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,#ff9aa4,#ef233c 48%,#8b0b1a);box-shadow:0 3px 0 #5d0712,0 7px 14px #5d071277,inset 1px 1px 0 #fff0f2}
+@media(max-width:700px){.nav{box-shadow:0 5px 0 #d7a5ad,0 10px 18px #5c0b1722}.nav-brand{padding:6px 9px}.nav button{box-shadow:0 3px 0 #d7a5ad,0 6px 10px #5c0b1718}}
 </style>
 </body>
 </html>
