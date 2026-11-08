@@ -404,10 +404,16 @@ def add_media_previews(media):
     return result
 
 
-def ticket_json(row, conn=None, user=None, include_previews=True):
+def compact_media(media):
+    return [{key: value for key, value in dict(entry).items() if key not in ("data", "preview_data")} for entry in media or []]
+
+
+def ticket_json(row, conn=None, user=None, include_previews=True, include_media_data=True):
     item = dict(row)
     media = json.loads(item.pop("media_json") or "[]")
-    item["media"] = add_media_previews(media) if include_previews else media
+    if include_previews:
+        media = add_media_previews(media)
+    item["media"] = media if include_media_data else compact_media(media)
     item["recipients"] = json.loads(item.pop("recipient_emails", "[]") or "[]")
     item["can_update_today"] = item.get("day") == business_today()
     if not str(item.get("leader") or "").strip() or item["leader"] == "Leader Inbox":
@@ -810,7 +816,7 @@ def list_tickets(request: Request, day: str = "all"):
         query += " AND day=?"
         args.append(day)
     rows = conn.execute(query + " ORDER BY sent_at DESC", args).fetchall()
-    result = [ticket_json(row, conn, user, include_previews=False) for row in rows]
+    result = [ticket_json(row, conn, user, include_previews=False, include_media_data=False) for row in rows]
     conn.close()
     return result
 
@@ -822,7 +828,7 @@ def dashboard_ticket_feed(request: Request):
     result = []
     for row in rows:
         item = dict(row)
-        item["media"] = json.loads(item.pop("media_json") or "[]")
+        item["media"] = compact_media(json.loads(item.pop("media_json") or "[]"))
         item["recipients"] = json.loads(item.pop("recipient_emails", "[]") or "[]")
         result.append(item)
     conn.close()
