@@ -117,8 +117,21 @@ function clearForm() {
   mediaPreview.innerHTML = '';
 }
 
+function applyTicketUpdate(updated) {
+  if (!updated?.id) return;
+  const merge = (ticket) => ticket.id === updated.id ? { ...ticket, ...updated } : ticket;
+  state.tickets = state.tickets.some((ticket) => ticket.id === updated.id)
+    ? state.tickets.map(merge)
+    : [...state.tickets, updated];
+  state.dashboardTickets = state.dashboardTickets.some((ticket) => ticket.id === updated.id)
+    ? state.dashboardTickets.map(merge)
+    : [...state.dashboardTickets, updated];
+  renderAll();
+}
+
 function patch(id, payload) {
-  return api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) }).then(load);
+  return api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload) })
+    .then((updated) => { applyTicketUpdate(updated); return updated; });
 }
 
 function markRead(id) { patch(id, { status: 'READ' }); }

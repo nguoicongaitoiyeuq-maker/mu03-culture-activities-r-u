@@ -113,8 +113,8 @@ async function reviewTicket(id) {
   workflowSubmitting[id] = true;
   setWorkflowBusy(id, true, 'REVIEWING...');
   try {
-    await api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ reviewed: true }) });
-    await load();
+    const updated = await api(`/api/tickets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ reviewed: true }) });
+    applyTicketUpdate(updated);
     showToast('Đã review ticket. Bạn có thể CFM.', 'success');
   } catch (error) { showToast(error.message || 'Không thể review ticket', 'error'); }
   finally { workflowSubmitting[id] = false; setWorkflowBusy(id, false); }
