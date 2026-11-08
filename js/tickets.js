@@ -17,12 +17,14 @@ function applyState(session, tickets, familiesList) {
   state.role = session.role || 'MEMBER';
   state.canCreateTicket = session.can_create_ticket === true || CFM_EMAILS.has(String(session.user || '').trim().toLowerCase());
   state.canViewCfm = session.can_view_cfm === true || session.role === 'SHIFT_LEADER' || CFM_EMAILS.has(String(session.user || '').trim().toLowerCase());
+  state.canViewData = session.can_view_data === true;
   state.teamsConfigured = Boolean(session.teams_configured);
   state.tickets = tickets;
   state.families = familiesList;
   userPill.textContent = state.displayName;
   document.querySelectorAll('[data-page="create"], [data-new-ticket]').forEach((element) => element.classList.toggle('hidden', !state.canCreateTicket));
   document.querySelectorAll('[data-cfm-menu]').forEach((element) => element.classList.toggle('hidden', !state.canViewCfm));
+  document.querySelectorAll('[data-page="data"]').forEach((element) => element.classList.toggle('hidden', !state.canViewData));
   renderFamilyOptions();
   setAccountEmail(session.user);
   daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
@@ -93,7 +95,7 @@ async function createTicket() {
   ticketSubmitting = true;
   if (button) { button.disabled = true; button.textContent = 'SENDING...'; }
   try {
-    const result = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, work_shift: shift.value, cause: 'General', media: state.media }) });
+    const result = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, cause: 'General', media: state.media }) });
     const ticket = result.tickets?.[0] || result;
     const sentCount = Number(result.count || 1);
     clearForm();
@@ -110,7 +112,6 @@ function clearForm() {
   setAccountEmail(state.user);
   state.media = [];
   mediaPreview.innerHTML = '';
-  if (typeof shift !== 'undefined') shift.value = '';
 }
 
 function patch(id, payload) {

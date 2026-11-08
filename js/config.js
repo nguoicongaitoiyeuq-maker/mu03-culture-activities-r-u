@@ -1,7 +1,7 @@
 const slides = ['4.webp'];
 let slideIndex = 0;
 let slideFront = true;
-let state = { user: '', today: '', role: 'MEMBER', canCreateTicket: false, canViewCfm: false, teamsConfigured: false, tickets: [], families: [], day: 'all', media: [] };
+let state = { user: '', today: '', role: 'MEMBER', canCreateTicket: false, canViewCfm: false, canViewData: false, teamsConfigured: false, tickets: [], families: [], day: 'all', media: [] };
 const CFM_EMAILS = new Set([
   'thanhphat.duong@ttigroup.com.vn',
   'trunghieu.ho@ttigroup.com.vn',

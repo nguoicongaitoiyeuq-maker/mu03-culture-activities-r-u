@@ -66,6 +66,10 @@ function ticketGroup(ticket) {
   return ticket.family === 'ALL MU03' ? (ticket.target_family || 'ALL MU03') : ticket.family;
 }
 
+function familyTone(name) {
+  return ({ 'Gen 4': 'gen4', 'Gen 5': 'gen5', HTIW: 'htiw', Grinder: 'grinder', 'D&F': 'df', Nailer: 'nailer', 'Sub Line': 'subline' }[name] || 'other');
+}
+
 function renderGroupCharts() {
   const items = state.tickets.filter((ticket) => state.day === 'all' || ticket.day === state.day);
   const groups = chartGroups();
@@ -98,7 +102,7 @@ function renderGroupCharts() {
 
 function renderRows() {
   const items = state.tickets.filter((ticket) => state.day === 'all' || ticket.day === state.day);
-  ticketRows.innerHTML = items.length ? items.map((ticket) => `<tr><td><b>${esc(ticket.id)}</b><br><span class="meta">${new Date(ticket.sent_at).toLocaleString('vi-VN')}</span></td><td>${esc(ticket.title)}</td><td>${esc(ticket.family)}</td><td>${leaderName(ticket.leader)}</td><td>${esc(ticket.line_id || '—')}</td><td>${badge(ticket.status)}</td><td>${formatSla(ticket)}</td></tr>`).join('') : '<tr><td colspan="7" class="empty">No tickets for this date.</td></tr>';
+  ticketRows.innerHTML = items.length ? items.map((ticket) => { const family = ticketGroup(ticket); return `<tr><td><b class="tracking-id">${esc(ticket.id)}</b><br><span class="meta">${new Date(ticket.sent_at).toLocaleString('vi-VN')}</span></td><td><span class="tracking-title">${esc(ticket.title)}</span></td><td><span class="tracking-family family-${familyTone(family)}">${esc(family)}</span></td><td><span class="tracking-shift ${ticket.work_shift ? 'selected' : ''}">${esc(ticket.work_shift || '—')}</span></td><td><span class="tracking-person">${esc(leaderName(ticket.leader))}</span></td><td><span class="tracking-line">${esc(ticket.line_id || '—')}</span></td><td>${badge(ticket.status)}</td><td>${formatSla(ticket)}</td></tr>`; }).join('') : '<tr><td colspan="8" class="empty">No tickets for this date.</td></tr>';
   scopeLabel.textContent = `${state.user || ''} · ${state.day === 'all' ? 'all dates' : state.day}`;
 }
 
