@@ -28,11 +28,10 @@ function applyState(session, tickets, familiesList, dashboardTickets) {
   document.querySelectorAll('[data-page="data"]').forEach((element) => element.classList.toggle('hidden', !state.canViewData));
   renderFamilyOptions();
   setAccountEmail(session.user);
-  daySelect.innerHTML = '<option value="all">All dates</option>' + [...new Set(tickets.map((ticket) => ticket.day))].sort().reverse().map((day) => `<option value="${day}">${day}</option>`).join('');
-  daySelect.value = state.day;
   const dayPicker = document.getElementById('dayPicker');
-  if (dayPicker) dayPicker.value = state.day === 'all' ? '' : state.day;
+  if (dayPicker) updateDateFilterUI();
   renderAll();
+  showPage(requestedPage());
 }
 
 function renderFamilyOptions() {
@@ -62,12 +61,14 @@ function load() {
     applyState(boot, boot.tickets || [], boot.families || [], boot.dashboard_tickets || boot.tickets || []);
     return Promise.resolve();
   }
-  return Promise.allSettled([api('/api/session'), api('/api/tickets'), api('/api/families'), api('/api/dashboard/tickets')]).then((results) => {
-    const sessionResult = results[0];
-    if (sessionResult.status !== 'fulfilled') throw sessionResult.reason;
-    const tickets = results[1].status === 'fulfilled' ? results[1].value : [];
-    const dashboardTickets = results[3].status === 'fulfilled' && Array.isArray(results[3].value) ? results[3].value : [];
-    applyState(sessionResult.value, tickets, results[2].status === 'fulfilled' ? results[2].value : [], dashboardTickets);
+  return api('/api/session').then((session) => {
+    // Show the signed-in user immediately; SharePoint reads can take longer.
+    applyState(session, state.tickets || [], state.families || [], state.dashboardTickets || state.tickets || []);
+    return Promise.allSettled([api('/api/tickets'), api('/api/families'), api('/api/dashboard/tickets')]).then((results) => {
+      const tickets = results[0].status === 'fulfilled' ? results[0].value : [];
+      const dashboardTickets = results[2].status === 'fulfilled' && Array.isArray(results[2].value) ? results[2].value : [];
+      applyState(session, tickets, results[1].status === 'fulfilled' ? results[1].value : [], dashboardTickets);
+    });
   });
 }
 
@@ -136,7 +137,18 @@ function patch(id, payload) {
 
 function markRead(id) { patch(id, { status: 'READ' }); }
 
-function closeTicket(id) { patch(id, { status: 'CLOSED' }); }
+async function closeTicket(id) {
+  const buttons = [...document.querySelectorAll('button[data-confirm-ticket]')].filter((button) => button.dataset.confirmTicket === id);
+  if (buttons.some((button) => button.disabled)) return;
+  buttons.forEach((button) => { button.disabled = true; button.textContent = 'CLOSING...'; });
+  try {
+    await patch(id, { status: 'CLOSED' });
+    showToast('Ticket closed successfully', 'success');
+  } catch (error) {
+    showToast(error.message || 'Cannot close ticket', 'error');
+    buttons.forEach((button) => { button.disabled = false; button.textContent = 'CONFIRM & CLOSE'; });
+  }
+}
 
 mediaInput.onchange = (event) => {
   [...event.target.files].slice(0, 6).forEach((file) => {

@@ -6,6 +6,11 @@ function showPage(id) {
   if (typeof renderAll === 'function') renderAll();
 }
 
+function requestedPage() {
+  const page = new URLSearchParams(window.location.search).get('page');
+  return ['dashboard', 'create', 'inbox', 'confirmation', 'family-models', 'data'].includes(page) ? page : 'dashboard';
+}
+
 document.querySelectorAll('.nav button').forEach((button) => {
   button.addEventListener('click', () => showPage(button.dataset.page));
 });
