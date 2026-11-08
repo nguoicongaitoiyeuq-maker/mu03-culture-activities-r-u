@@ -363,7 +363,7 @@ def ticket_json(row, conn=None, user=None):
             is_shift = str(item.get("shift_leader") or "").lower() == user.lower() or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
             is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
         item["can_review"] = False
-        item["can_confirm"] = is_target and is_shift and item["status"] in SHIFT_CONFIRM_STATUSES
+        item["can_confirm"] = is_shift and item["status"] in SHIFT_CONFIRM_STATUSES
         item["can_manage"] = is_target and is_area
         if item["family"] == "ALL MU03" and target_email and target_row and target_row["role"] == "AREA_LEADER":
             item["can_review"] = item["status"] == "READ" and bool(item.get("read_at")) and bool(target_row["managed_by"]) and target_row["managed_by"].lower() == user.lower()
@@ -429,7 +429,7 @@ def session(request: Request):
     )
     conn.close()
     profile = directory_lookup(request, user)
-    return {"user": user, "display_name": profile["display_name"], "today": business_today(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
+    return {"user": user, "display_name": profile["display_name"], "today": business_today(), "role": role, "can_create_ticket": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "can_view_cfm": can_view_cfm, "can_view_data": user in {member[0] for member in CULTURE_GROUP_MEMBERS}, "teams_configured": bool(os.getenv("MU03_TEAMS_WEBHOOK_URL")), "directory_configured": bool(os.getenv("MS_GRAPH_ACCESS_TOKEN"))}
 
 
 @app.get("/api/directory/lookup")
