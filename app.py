@@ -474,9 +474,9 @@ def notify_power_automate_update(ticket):
         "shift": ticket.get("work_shift", ""),
         "content": ticket.get("content", ""),
         "mediaJson": json.dumps(ticket.get("media") or [], ensure_ascii=False),
-        # SharePoint date fields reject an empty string. Use null until the
-        # ticket is actually closed so Power Automate can clear the field.
-        "closedAt": ticket.get("closed_at") or None,
+        # The HTTP trigger requires a date-shaped string. The flow converts
+        # this sentinel to null unless the ticket is actually CLOSED.
+        "closedAt": ticket.get("closed_at") or "1900-01-01T00:00:00Z",
         "ticketUrl": f"{os.getenv('MU03_APP_URL', 'https://mu03-r-u-3423969507737722.2.azure.databricksapps.com')}/?ticket={quote(ticket.get('id', ''))}",
     }
     try:
