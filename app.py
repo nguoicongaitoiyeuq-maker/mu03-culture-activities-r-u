@@ -18,6 +18,7 @@ from zoneinfo import ZoneInfo
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from starlette.background import BackgroundTask
+from starlette.middleware.gzip import GZipMiddleware
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as ExcelImage
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -152,6 +153,7 @@ SUBLINE_LEADERS = [
     ("tranvuduy.hoang@ttigroup.com.vn", "Hoàng Trần Vũ Duy", "Acting Line Leader", "AREA_LEADER", "danghai.le01@ttigroup.com.vn"),
 ]
 app = FastAPI(title="MU03 Production Communication")
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
 LOGGER = logging.getLogger("mu03")
 SCHEMA_LOCK = threading.Lock()
 SCHEMA_READY = False
@@ -402,9 +404,10 @@ def add_media_previews(media):
     return result
 
 
-def ticket_json(row, conn=None, user=None):
+def ticket_json(row, conn=None, user=None, include_previews=True):
     item = dict(row)
-    item["media"] = add_media_previews(json.loads(item.pop("media_json") or "[]"))
+    media = json.loads(item.pop("media_json") or "[]")
+    item["media"] = add_media_previews(media) if include_previews else media
     item["recipients"] = json.loads(item.pop("recipient_emails", "[]") or "[]")
     item["can_update_today"] = item.get("day") == business_today()
     if not str(item.get("leader") or "").strip() or item["leader"] == "Leader Inbox":
@@ -807,7 +810,7 @@ def list_tickets(request: Request, day: str = "all"):
         query += " AND day=?"
         args.append(day)
     rows = conn.execute(query + " ORDER BY sent_at DESC", args).fetchall()
-    result = [ticket_json(row, conn, user) for row in rows]
+    result = [ticket_json(row, conn, user, include_previews=False) for row in rows]
     conn.close()
     return result
 
