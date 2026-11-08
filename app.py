@@ -636,9 +636,41 @@ def read_sharepoint_tickets():
     return result
 
 
+def sync_sharepoint_cache(conn, shared):
+    shared_ids = {str(item.get("id") or "") for item in shared}
+    for item in shared:
+        ticket = {
+            "id": item.get("id", ""), "owner": item.get("owner", ""), "day": item.get("day", ""),
+            "title": item.get("title", ""), "family": item.get("family", ""), "content": item.get("content", ""),
+            "cause": "General", "department": item.get("owner", ""), "leader": item.get("leader", ""),
+            "status": item.get("status", ""), "line_id": item.get("line_id", ""), "note": "",
+            "media_json": json.dumps(item.get("media") or [], ensure_ascii=False), "sent_at": item.get("sent_at", ""),
+            "read_at": None, "closed_at": item.get("closed_at"), "family_owner": CULTURE_GROUP_OWNER,
+            "shift_leader": item.get("shift_leader", ""), "area_leader": item.get("area_leader") or item.get("leader", ""),
+            "recipient_emails": json.dumps(item.get("recipients") or [], ensure_ascii=False), "target_email": item.get("target_email") or item.get("leader", ""),
+            "target_family": item.get("target_family") or item.get("family", ""), "work_shift": item.get("work_shift", ""),
+            "sharepoint_item_id": item.get("sharepoint_item_id", ""),
+        }
+        if conn.execute("SELECT 1 FROM tickets WHERE id=?", (ticket["id"],)).fetchone():
+            conn.execute("UPDATE tickets SET owner=:owner,day=:day,title=:title,family=:family,content=:content,leader=:leader,status=:status,line_id=:line_id,media_json=:media_json,sent_at=:sent_at,closed_at=:closed_at,family_owner=:family_owner,shift_leader=:shift_leader,area_leader=:area_leader,recipient_emails=:recipient_emails,target_email=:target_email,target_family=:target_family,work_shift=:work_shift,sharepoint_item_id=:sharepoint_item_id WHERE id=:id", ticket)
+        else:
+            conn.execute("INSERT INTO tickets (id,owner,day,title,family,content,cause,department,leader,status,line_id,note,media_json,sent_at,read_at,closed_at,family_owner,shift_leader,area_leader,recipient_emails,target_email,target_family,work_shift,sharepoint_item_id) VALUES (:id,:owner,:day,:title,:family,:content,:cause,:department,:leader,:status,:line_id,:note,:media_json,:sent_at,:read_at,:closed_at,:family_owner,:shift_leader,:area_leader,:recipient_emails,:target_email,:target_family,:work_shift,:sharepoint_item_id)", ticket)
+    if shared_ids:
+        placeholders = ",".join("?" for _ in shared_ids)
+        conn.execute(f"DELETE FROM tickets WHERE id NOT IN ({placeholders})", tuple(shared_ids))
+    else:
+        conn.execute("DELETE FROM tickets")
+    conn.commit()
+
+
 @app.get("/api/tickets")
 def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
+    shared = read_sharepoint_tickets()
+    if shared is not None:
+        cache = db()
+        sync_sharepoint_cache(cache, shared)
+        cache.close()
     conn = db()
     query = "SELECT * FROM tickets WHERE (owner=? OR lower(shift_leader)=lower(?) OR (target_email<>'' AND (lower(target_email)=lower(?) OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND lower(m.email)=lower(tickets.target_email) AND m.role='AREA_LEADER' AND lower(m.managed_by)=lower(?) AND (tickets.target_family='' OR m.family_name=tickets.target_family)))) OR (target_email='' AND (family='ALL MU03' OR EXISTS (SELECT 1 FROM family_members m WHERE m.family_owner=tickets.family_owner AND m.family_name=tickets.family AND lower(m.email)=lower(?)))))"
     args = [user, user, user, user, user]
