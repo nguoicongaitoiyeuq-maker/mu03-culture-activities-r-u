@@ -31,6 +31,7 @@ SHIFT_CONFIRM_STATUSES = {"READ", "LINE SHARING COMPLETED", "NO LINE - COMPLETED
 CULTURE_GROUP_OWNER = "thanhdat.le2@ttigroup.com.vn"
 CULTURE_GROUP_NAME = "Core Teams"
 LEGACY_CULTURE_GROUP_NAME = "Ban Văn Hóa"
+CORE_TEAM_OWNER_EMAILS = ("khachieu.nguyen01@ttigroup.com.vn", "hongthai.vu@ttigroup.com.vn")
 CULTURE_GROUP_MEMBERS = [
     ("thanhphat.duong@ttigroup.com.vn", "Dương Thành Phát", "Assistant Production Manager", "MEMBER", ""),
     ("trunghieu.ho@ttigroup.com.vn", "Hồ Trung Hiếu", "Production Supervisor", "MEMBER", ""),
@@ -274,6 +275,9 @@ def ensure_families(conn, user):
             "INSERT OR REPLACE INTO family_members(family_owner,family_name,email,display_name,title,role,managed_by,created_at) VALUES(?,?,?,?,?,?,?,?)",
             (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, email, display_name, title, role, managed_by, now_iso()),
         )
+    placeholders = ",".join("?" for _ in CORE_TEAM_OWNER_EMAILS)
+    conn.execute(f"UPDATE family_members SET role='ADMIN', managed_by='' WHERE family_owner=? AND family_name=? AND lower(email) IN ({placeholders})", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, *CORE_TEAM_OWNER_EMAILS))
+    conn.execute(f"UPDATE family_members SET role='MEMBER', managed_by='' WHERE family_owner=? AND family_name=? AND lower(email) NOT IN ({placeholders})", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, *CORE_TEAM_OWNER_EMAILS))
     for name in DEFAULT_FAMILIES:
         conn.execute("INSERT OR IGNORE INTO families(owner,name,created_at) VALUES(?,?,?)", (CULTURE_GROUP_OWNER, name, now_iso()))
     conn.commit()
