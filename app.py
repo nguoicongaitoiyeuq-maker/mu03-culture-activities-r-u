@@ -357,11 +357,11 @@ def ticket_json(row, conn=None, user=None):
                 is_shift = is_target
                 is_area = False
             else:
-                is_shift = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='SHIFT_LEADER'", (user,)).fetchone() is not None
-                is_area = conn.execute("SELECT 1 FROM family_members WHERE email=? AND role='AREA_LEADER'", (user,)).fetchone() is not None
+                is_shift = conn.execute("SELECT 1 FROM family_members WHERE lower(email)=lower(?) AND role='SHIFT_LEADER'", (user,)).fetchone() is not None
+                is_area = conn.execute("SELECT 1 FROM family_members WHERE lower(email)=lower(?) AND role='AREA_LEADER'", (user,)).fetchone() is not None
         else:
-            is_shift = str(item.get("shift_leader") or "").lower() == user.lower() or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
-            is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND email=? AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
+            is_shift = str(item.get("shift_leader") or "").lower() == user.lower() or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) AND role='SHIFT_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
+            is_area = conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) AND role='AREA_LEADER'", (item["family_owner"], item["family"], user)).fetchone() is not None
         item["can_review"] = False
         item["can_confirm"] = is_shift and item["status"] in SHIFT_CONFIRM_STATUSES
         item["can_manage"] = is_target and is_area
@@ -423,8 +423,9 @@ def session(request: Request):
     ensure_families(conn, user)
     role = highest_role(conn, user)
     can_view_cfm = (
-        role == "SHIFT_LEADER"
+        role in ("SHIFT_LEADER", "ADMIN")
         or user in {member[0] for member in CULTURE_GROUP_MEMBERS}
+        or conn.execute("SELECT 1 FROM family_members WHERE lower(email)=lower(?) AND role='SHIFT_LEADER' LIMIT 1", (user,)).fetchone() is not None
         or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name='Ban Văn Hóa' AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, user)).fetchone() is not None
     )
     conn.close()
