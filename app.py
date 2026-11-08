@@ -831,9 +831,11 @@ def export_tickets(request: Request, day: str = "all"):
         sheet.append([item.get("id", ""), item.get("day", ""), str(item.get("closed_at") or ""), item.get("status", ""), item.get("target_family") or item.get("family", ""), item.get("title", ""), item.get("owner", ""), item.get("leader", ""), item.get("line_id", ""), item.get("work_shift", ""), item.get("content", ""), media_names])
         row_number = sheet.max_row
         sheet.cell(row_number, 11).alignment = Alignment(wrap_text=True, vertical="top")
+        first_evidence_row = None
         for entry in media:
             evidence.append([item.get("id", ""), item.get("target_family") or item.get("family", ""), entry.get("name", ""), entry.get("type", ""), ""])
             evidence_row = evidence.max_row
+            first_evidence_row = first_evidence_row or evidence_row
             evidence.cell(evidence_row, 1).alignment = Alignment(vertical="top")
             image = excel_image_from_media(entry)
             if image:
@@ -843,6 +845,11 @@ def export_tickets(request: Request, day: str = "all"):
                 evidence.row_dimensions[evidence_row].height = 86
             else:
                 evidence.cell(evidence_row, 5).value = "Preview unavailable; open the ticket to view the original media."
+        if first_evidence_row:
+            media_cell = sheet.cell(row_number, 12)
+            media_cell.hyperlink = f"#'Evidence'!E{first_evidence_row}"
+            media_cell.font = Font(color="0563C1", underline="single")
+            media_cell.alignment = Alignment(wrap_text=True, vertical="top")
     sheet.auto_filter.ref = sheet.dimensions
     evidence.auto_filter.ref = evidence.dimensions
     export_path = os.path.join(tempfile.gettempdir(), f"mu03-ticket-data-{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx")
