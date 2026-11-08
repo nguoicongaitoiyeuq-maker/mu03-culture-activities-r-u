@@ -13,7 +13,7 @@ from urllib.parse import quote
 from urllib.request import Request as UrlRequest, urlopen
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from starlette.background import BackgroundTask
 from openpyxl import Workbook
@@ -456,7 +456,9 @@ def notify_power_automate_update(ticket):
         "shift": ticket.get("work_shift", ""),
         "content": ticket.get("content", ""),
         "mediaJson": json.dumps(ticket.get("media") or [], ensure_ascii=False),
-        "closedAt": ticket.get("closed_at") or "",
+        # SharePoint date fields reject an empty string. Use null until the
+        # ticket is actually closed so Power Automate can clear the field.
+        "closedAt": ticket.get("closed_at") or None,
         "ticketUrl": f"{os.getenv('MU03_APP_URL', 'https://mu03-r-u-3423969507737722.2.azure.databricksapps.com')}/?ticket={quote(ticket.get('id', ''))}",
     }
     try:
@@ -833,7 +835,7 @@ async def create_ticket(request: Request):
 
 
 @app.patch("/api/tickets/{ticket_id}")
-async def update_ticket(ticket_id: str, request: Request):
+async def update_ticket(ticket_id: str, request: Request, background_tasks: BackgroundTasks):
     payload = await request.json()
     user = user_email(request)
     conn = db()
@@ -896,10 +898,12 @@ async def update_ticket(ticket_id: str, request: Request):
     updated = conn.execute("SELECT * FROM tickets WHERE id=?", (ticket_id,)).fetchone()
     result = ticket_json(updated, conn, user)
     conn.close()
-    sharepoint_update_ticket(result)
-    notify_power_automate_update(result)
+    # Return the local update immediately. Remote SharePoint/flow calls can be slow
+    # or unavailable, and must not leave the workflow button waiting indefinitely.
+    background_tasks.add_task(sharepoint_update_ticket, result)
+    background_tasks.add_task(notify_power_automate_update, result)
     if status:
-        notify_teams(result, f"Ticket status changed to {status}")
+        background_tasks.add_task(notify_teams, result, f"Ticket status changed to {status}")
     return result
 
 
