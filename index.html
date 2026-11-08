@@ -534,10 +534,10 @@ function renderData() {
   list.innerHTML = items.length ? items.map((ticket) => {
     const media = (ticket.media || []).map((item) => {
       const unsupportedImage = /heic|heif/i.test(item.type || '') || /\.(heic|heif)$/i.test(item.name || '');
-      if (unsupportedImage) return `<a class="data-media-download" href="${item.data}" download="${esc(item.name)}">DOWNLOAD ${esc(item.name)}</a>`;
+      if (unsupportedImage && !item.preview_data) return `<a class="data-media-download" href="${item.data}" download="${esc(item.name)}">DOWNLOAD ${esc(item.name)}</a>`;
       return item.type?.startsWith('video')
-        ? `<video controls preload="metadata" src="${item.data}" aria-label="${esc(item.name)}"></video>`
-        : `<img src="${item.data}" alt="${esc(item.name)}">`;
+        ? `<video controls preload="metadata" src="${item.preview_data || item.data}" aria-label="${esc(item.name)}"></video>`
+        : `<img src="${item.preview_data || item.data}" alt="${esc(item.name)}">`;
     }).join('');
     return `<article class="data-record"><div class="data-record-head"><div><span class="data-kicker">Closed ticket</span><h3>${esc(ticket.title)}</h3><p>${esc(ticket.id)} · ${esc(ticket.target_family || ticket.family)} · ${esc(ticket.line_id || 'No line')}</p></div><time>${new Date(ticket.closed_at || ticket.sent_at).toLocaleString('vi-VN')}</time></div><div class="data-record-body"><div><strong>Leader</strong><span>${esc(leaderName(ticket.leader))}</span></div><div><strong>Status</strong><span>${badge(ticket.status)}</span></div><div><strong>Content</strong><p>${esc(ticket.content)}</p></div></div>${media ? `<div class="data-media">${media}</div>` : '<div class="data-no-media">No evidence attached.</div>'}</article>`;
   }).join('') : '<div class="data-empty">No closed tickets for this date.</div>';

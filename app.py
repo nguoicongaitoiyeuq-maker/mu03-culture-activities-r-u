@@ -366,9 +366,34 @@ def user_can_view(conn, row, user):
     return conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (row["family_owner"], row["family"], user)).fetchone() is not None
 
 
+def media_preview_data(media):
+    media_name = str(media.get("name") or "").lower()
+    media_type = str(media.get("type") or "").lower()
+    if not (media_type in ("image/heic", "image/heif") or media_name.endswith((".heic", ".heif", ".heics", ".heix"))):
+        return ""
+    data = str(media.get("data") or "")
+    if not data.startswith("data:") or "," not in data:
+        return ""
+    try:
+        from PIL import Image
+        from pillow_heif import register_heif_opener
+        register_heif_opener()
+        source = Image.open(BytesIO(base64.b64decode(data.split(",", 1)[1]))).convert("RGB")
+        output = BytesIO()
+        source.save(output, format="PNG")
+        encoded = base64.b64encode(output.getvalue()).decode("ascii")
+        return f"data:image/png;base64,{encoded}"
+    except Exception:
+        return ""
+
+
 def ticket_json(row, conn=None, user=None):
     item = dict(row)
     item["media"] = json.loads(item.pop("media_json") or "[]")
+    for media in item["media"]:
+        preview = media_preview_data(media)
+        if preview:
+            media["preview_data"] = preview
     item["recipients"] = json.loads(item.pop("recipient_emails", "[]") or "[]")
     item["can_update_today"] = item.get("day") == business_today()
     if not str(item.get("leader") or "").strip() or item["leader"] == "Leader Inbox":
