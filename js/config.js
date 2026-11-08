@@ -18,14 +18,23 @@ const CFM_EMAILS = new Set([
 let leaderMedia = {};
 let expandedTickets = {};
 
-const api = (url, opt) => fetch(url, Object.assign({ headers: { 'Content-Type': 'application/json' } }, opt || {}))
-  .then(async (response) => {
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.detail || data.message || 'Request failed');
-    }
-    return response.json();
-  });
+const api = (url, opt) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  return fetch(url, Object.assign({ headers: { 'Content-Type': 'application/json' }, signal: controller.signal }, opt || {}))
+    .then(async (response) => {
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || data.message || 'Request failed');
+      }
+      return response.json();
+    })
+    .catch((error) => {
+      if (error.name === 'AbortError') throw new Error('Request timed out. Please retry.');
+      throw error;
+    })
+    .finally(() => clearTimeout(timeout));
+};
 
 const esc = (value) => String(value || '').replace(/[&<>'"]/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
