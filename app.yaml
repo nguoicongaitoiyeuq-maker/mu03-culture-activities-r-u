@@ -7,4 +7,4 @@ command:
   - "8000"
 env:
   - name: MU03_FLOW_HTTP_URL
-    value: "https://default8b8cc6cf0eaa4b6498e46d4672c449.30.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/94b5f4635c48493582c899e7bc7126e0/triggers/manual/paths/invoke?api-version=1"
+    value: "https://default8b8cc6cf0eaa4b6498e46d4672c449.30.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/94b5f4635c48493582c899e7bc7126e0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=L_aMexofredaYY_Ic0GhafyLDwqPsCrgSfwz6CPP_EM"
