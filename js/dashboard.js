@@ -61,9 +61,9 @@ function renderWorkflowPareto() {
 }
 
 function chartGroups() {
-  const configured = (state.families || []).filter((name) => name && name !== 'ALL MU03' && name !== 'Ban Văn Hóa');
+  const configured = (state.families || []).filter((name) => name && name !== 'ALL MU03' && name !== 'Core Teams');
   const discovered = dashboardItems().flatMap((ticket) => [ticket.target_family, ticket.family]).filter(Boolean);
-  return [...new Set([...configured, ...discovered].filter((name) => name !== 'ALL MU03' && name !== 'Ban Văn Hóa'))];
+  return [...new Set([...configured, ...discovered].filter((name) => name !== 'ALL MU03' && name !== 'Core Teams'))];
 }
 
 function ticketGroup(ticket) {
