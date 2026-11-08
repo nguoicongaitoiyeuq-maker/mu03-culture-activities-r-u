@@ -668,6 +668,7 @@ def session(request: Request):
         or conn.execute("SELECT 1 FROM family_members WHERE family_owner=? AND family_name=? AND lower(email)=lower(?) LIMIT 1", (CULTURE_GROUP_OWNER, CULTURE_GROUP_NAME, user)).fetchone() is not None
     )
     conn.close()
+    schedule_sharepoint_cache_refresh()
     directory_profile = load_directory().get(user)
     display_name = directory_profile["display_name"] if directory_profile else ""
     if not display_name:
@@ -795,7 +796,6 @@ def schedule_sharepoint_cache_refresh():
 @app.get("/api/tickets")
 def list_tickets(request: Request, day: str = "all"):
     user = user_email(request)
-    schedule_sharepoint_cache_refresh()
     conn = db()
     if highest_role(conn, user) == "ADMIN":
         query = "SELECT * FROM tickets"
@@ -814,7 +814,6 @@ def list_tickets(request: Request, day: str = "all"):
 
 @app.get("/api/dashboard/tickets")
 def dashboard_ticket_feed(request: Request):
-    schedule_sharepoint_cache_refresh()
     conn = db()
     rows = conn.execute("SELECT * FROM tickets ORDER BY sent_at DESC").fetchall()
     result = []
