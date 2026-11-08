@@ -8,5 +8,7 @@ command:
 env:
   - name: MU03_FLOW_HTTP_URL
     value: "https://default8b8cc6cf0eaa4b6498e46d4672c449.30.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/19/workflows/94b5f4635c48493582c899e7bc7126e0/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=L_aMexofredaYY_Ic0GhafyLDwqPsCrgSfwz6CPP_EM"
+  - name: MU03_READ_FLOW_HTTP_URL
+    value: "https://default8b8cc6cf0eaa4b6498e46d4672c449.30.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/04/workflows/9d3c55ba90e141898a47bd87cca3d075/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=R2HZelErMv-K-sKJY0mV8itc3wowGDvvOuwpHEvAJxQ"
   - name: MU03_UPDATE_FLOW_HTTP_URL
     value: "https://default8b8cc6cf0eaa4b6498e46d4672c449.30.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/00/workflows/1f1a7acc15b74f199f73451d205950b6/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=hctI1KjEY0oCSnD2G4DZvxHGjrwXP97mACVnLkjPvm8"
