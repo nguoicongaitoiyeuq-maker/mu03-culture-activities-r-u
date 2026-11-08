@@ -61,14 +61,19 @@ function load() {
     applyState(boot, boot.tickets || [], boot.families || [], boot.dashboard_tickets || boot.tickets || []);
     return Promise.resolve();
   }
+  const refreshTicketData = (session) => Promise.allSettled([api('/api/tickets'), api('/api/families'), api('/api/dashboard/tickets')]).then((results) => {
+    const tickets = results[0].status === 'fulfilled' ? results[0].value : [];
+    const dashboardTickets = results[2].status === 'fulfilled' && Array.isArray(results[2].value) ? results[2].value : [];
+    applyState(session, tickets, results[1].status === 'fulfilled' ? results[1].value : [], dashboardTickets);
+    return tickets;
+  });
   return api('/api/session').then((session) => {
     // Show the signed-in user immediately; SharePoint reads can take longer.
     applyState(session, state.tickets || [], state.families || [], state.dashboardTickets || state.tickets || []);
-    return Promise.allSettled([api('/api/tickets'), api('/api/families'), api('/api/dashboard/tickets')]).then((results) => {
-      const tickets = results[0].status === 'fulfilled' ? results[0].value : [];
-      const dashboardTickets = results[2].status === 'fulfilled' && Array.isArray(results[2].value) ? results[2].value : [];
-      applyState(session, tickets, results[1].status === 'fulfilled' ? results[1].value : [], dashboardTickets);
-    });
+    const firstLoad = refreshTicketData(session);
+    setTimeout(() => { if (!state.tickets.length) refreshTicketData(session); }, 3000);
+    setTimeout(() => { if (!state.tickets.length) refreshTicketData(session); }, 8000);
+    return firstLoad;
   });
 }
 
