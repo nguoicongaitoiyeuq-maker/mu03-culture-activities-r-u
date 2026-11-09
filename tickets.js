@@ -86,6 +86,25 @@ function showToast(message, kind) {
 }
 
 let ticketSubmitting = false;
+let ticketSubmitOverlay;
+
+function setTicketSubmitLoading(visible, message = 'Đang gửi ticket...') {
+  if (!ticketSubmitOverlay) {
+    ticketSubmitOverlay = document.createElement('div');
+    ticketSubmitOverlay.id = 'ticketSubmitOverlay';
+    ticketSubmitOverlay.setAttribute('role', 'status');
+    ticketSubmitOverlay.setAttribute('aria-live', 'polite');
+    ticketSubmitOverlay.innerHTML = '<div class="ticket-submit-card"><span class="ticket-submit-spinner" aria-hidden="true"></span><strong>Đang gửi ticket...</strong><span class="ticket-submit-copy"></span></div>';
+    ticketSubmitOverlay.style.cssText = 'position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.58);backdrop-filter:blur(3px);padding:24px;';
+    const style = document.createElement('style');
+    style.textContent = '.ticket-submit-card{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:250px;padding:28px 32px;border-radius:16px;background:#fff;color:#172033;box-shadow:0 18px 50px #0005;text-align:center}.ticket-submit-card strong{font-size:16px}.ticket-submit-copy{font-size:13px;color:#667085}.ticket-submit-spinner{width:42px;height:42px;border:4px solid #e5e7eb;border-top-color:#b42318;border-radius:50%;animation:mu03-ticket-spin .8s linear infinite}@keyframes mu03-ticket-spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+    document.body.appendChild(ticketSubmitOverlay);
+  }
+  const copy = ticketSubmitOverlay.querySelector('.ticket-submit-copy');
+  if (copy) copy.textContent = message;
+  ticketSubmitOverlay.style.display = visible ? 'flex' : 'none';
+}
 
 async function createTicket() {
   if (!state.canCreateTicket) {
@@ -96,16 +115,19 @@ async function createTicket() {
   const button = document.querySelector('#create .leader-actions .btn.primary');
   ticketSubmitting = true;
   if (button) { button.disabled = true; button.textContent = 'SENDING...'; }
+  setTicketSubmitLoading(true, 'Ticket đang được chuyển tới leader, vui lòng chờ trong giây lát.');
   try {
     const result = await api('/api/tickets', { method: 'POST', body: JSON.stringify({ title: title.value, content: content.value, family: family.value, cause: 'General', media: state.media }) });
-    const ticket = result.tickets?.[0] || result;
-    const sentCount = Number(result.count || 1);
+    const createdTickets = Array.isArray(result.tickets) ? result.tickets : [result];
+    const ticket = createdTickets[0];
+    const sentCount = Number(result.count || createdTickets.length || 1);
+    createdTickets.forEach((created) => applyTicketUpdate(created));
     clearForm();
-    await load();
     showPage('dashboard');
     showToast(sentCount > 1 ? `Gửi ticket thành công tới ${sentCount} leaders` : `Gửi ticket thành công: ${ticket.id}`, 'success');
+    void load().catch((refreshError) => console.warn('Ticket list refresh failed after send', refreshError));
   } catch (error) { showToast(error.message || 'Không thể tạo ticket', 'error'); }
-  finally { ticketSubmitting = false; if (button) { button.disabled = false; button.textContent = 'SEND TICKET'; } }
+  finally { ticketSubmitting = false; setTicketSubmitLoading(false); if (button) { button.disabled = false; button.textContent = 'SEND TICKET'; } }
 }
 
 function clearForm() {
